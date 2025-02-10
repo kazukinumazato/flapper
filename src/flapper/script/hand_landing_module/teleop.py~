@@ -1,0 +1,54 @@
+#!/usr/bin/env python   
+
+import rospy
+from std_msgs.msg import Empty
+from geometry_msgs.msg import PoseStamped
+from variables import *
+
+# 入力受付クラス
+class Teleop():
+    def __init__(self, navigator):
+        self.navigator = navigator
+        self.takeoff_sub = rospy.Subscriber('teleop_command/takeoff', Empty, self.takeoff_sub_callback)
+        self.land_sub = rospy.Subscriber('teleop_command/land', Empty, self.land_sub_callback)
+        self.approach_sub = rospy.Subscriber('teleop_command/approach', Empty, self.approach_sub_callback)
+        self.palm_land_sub = rospy.Subscriber('teleop_command/palm_land', Empty, self.palm_land_sub_callback)
+        self.stop_sub = rospy.Subscriber('teleop_command/halt', Empty, self.stop_sub_callback)
+        self.drone_pose_sub = rospy.Subscriber('mocap_node/mocap/flapper/pose', PoseStamped, self.drone_pose_sub_callback)
+        self.chest_pose_sub = rospy.Subscriber('mocap_node/mocap/chest/pose', PoseStamped, self.chest_pose_sub_callback)
+        self.hand_pose_sub = rospy.Subscriber('mocap_node/mocap/hand/pose', PoseStamped, self.hand_pose_sub_callback)
+
+    def send_pose(self, pos, quat, send_full_pose=True):
+        # """
+        # Send the current Crazyflie X, Y, Z position and attitude as a quaternion.
+        # This is going to be forwarded to the Crazyflie's position estimator.
+        # """
+        if send_full_pose:
+            self.cf.extpos.send_extpose(pos.x, pos.y, pos.z, quat.x, quat.y, quat.z, quat.w)
+        else:
+            self.cf.extpos.send_extpos(pos.x, pos.y, pos.z)
+
+    def takeoff_sub_callback(self, msg):
+        self.navigator.takeoff()
+
+    def land_sub_callback(self, msg):
+        self.navigator.land()
+
+    def approach_sub_callback(self, msg):
+        self.navigator.approach()
+
+    def palm_land_sub_callback(self, msg):
+        self.navigator.palm_land()
+
+    def stop_sub_callback(self, msg):
+        self.navigator.stop()
+
+    def drone_pose_sub_callback(self, msg):
+        self.drone_pose = msg.pose
+        self.send_pose(self.drone_pose.position, self.drone_pose.orientation)
+
+    def chest_pose_sub_callback(self, msg):
+        self.chest_pose = msg.pose
+
+    def hand_pose_sub_callback(self, msg):
+        self.hand_pose = msg.pose

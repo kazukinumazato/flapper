@@ -1,0 +1,6 @@
+devel_space: /home/mech-user/flapper_ws/devel
+install: false
+install_space: /home/mech-user/flapper_ws/install
+profile: default
+source_space: /home/mech-user/flapper_ws/src
+workspace: /home/mech-user/flapper_ws

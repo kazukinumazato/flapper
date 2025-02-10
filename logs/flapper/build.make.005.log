@@ -1,0 +1,23 @@
+[  0%] Built target std_msgs_generate_messages_lisp
+[  0%] Built target geometry_msgs_generate_messages_lisp
+[  0%] Built target std_msgs_generate_messages_eus
+[  0%] Built target geometry_msgs_generate_messages_cpp
+[  0%] Built target geometry_msgs_generate_messages_eus
+[  0%] Built target std_msgs_generate_messages_cpp
+[  0%] Built target geometry_msgs_generate_messages_nodejs
+[  0%] Built target std_msgs_generate_messages_nodejs
+[  0%] Built target std_msgs_generate_messages_py
+[  0%] Built target geometry_msgs_generate_messages_py
+[  0%] Built target _flapper_generate_messages_check_deps_Action
+[ 14%] [34m[1mGenerating Javascript code from flapper/Action.msg[0m
+[ 28%] [34m[1mGenerating Lisp code from flapper/Action.msg[0m
+[ 42%] [34m[1mGenerating C++ code from flapper/Action.msg[0m
+[ 57%] [34m[1mGenerating Python from MSG flapper/Action[0m
+[ 71%] [34m[1mGenerating EusLisp code from flapper/Action.msg[0m
+[ 71%] Built target flapper_generate_messages_nodejs
+[ 71%] Built target flapper_generate_messages_lisp
+[ 85%] Built target flapper_generate_messages_eus
+[100%] [34m[1mGenerating Python msg __init__.py for flapper[0m
+[100%] Built target flapper_generate_messages_cpp
+[100%] Built target flapper_generate_messages_py
+[100%] Built target flapper_generate_messages

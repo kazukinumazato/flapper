@@ -1,0 +1,7 @@
+set(flapper_SETUP_PY_SETUP_MODULE "distutils.core")
+set(flapper_SETUP_PY_VERSION "0.0.0")
+set(flapper_SETUP_PY_SCRIPTS "")
+set(flapper_SETUP_PY_PACKAGES "hand_landing_module")
+set(flapper_SETUP_PY_PACKAGE_DIRS "scripts/hand_landing_module")
+set(flapper_SETUP_PY_MODULES "")
+set(flapper_SETUP_PY_MODULE_DIRS "")

@@ -1,0 +1,8 @@
+prefix=/home/mech-user/flapper_ws/install
+
+Name: flapper
+Description: Description of flapper
+Version: 0.0.0
+Cflags: -I${prefix}/include
+Libs: -L${prefix}/lib 
+Requires: 

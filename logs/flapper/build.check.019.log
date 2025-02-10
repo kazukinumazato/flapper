@@ -1,0 +1,18 @@
+[31m[1mCMake Error[0m at /home/mech-user/flapper_ws/src/flapper/CMakeLists.txt:1 (make_minimum_required):
+  Unknown CMake command "make_minimum_required".
+
+
+CMake Warning (dev) in CMakeLists.txt:
+  No cmake_minimum_required command is present.  A line of code such as
+
+    cmake_minimum_required(VERSION 3.16)
+
+  should be added at the top of the file.  The version specified may be lower
+  if you wish to support older CMake versions for this project.  For more
+  information run "cmake --help-policy CMP0000".
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+[36m--[0m Configuring incomplete, errors occurred!
+See also "/home/mech-user/flapper_ws/build/flapper/CMakeFiles/CMakeOutput.log".
+See also "/home/mech-user/flapper_ws/build/flapper/CMakeFiles/CMakeError.log".
+make: *** [Makefile:642: cmake_check_build_system] Error 1

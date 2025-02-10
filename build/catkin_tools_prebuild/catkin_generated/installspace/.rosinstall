@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/mech-user/flapper_ws/install/setup.sh

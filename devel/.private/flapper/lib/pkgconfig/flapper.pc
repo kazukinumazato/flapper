@@ -1,0 +1,8 @@
+prefix=/home/mech-user/flapper_ws/devel/.private/flapper
+
+Name: flapper
+Description: Description of flapper
+Version: 0.0.0
+Cflags: -I/home/mech-user/flapper_ws/devel/.private/flapper/include
+Libs: -L${prefix}/lib 
+Requires: 

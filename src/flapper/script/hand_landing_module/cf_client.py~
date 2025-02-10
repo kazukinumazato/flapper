@@ -1,0 +1,129 @@
+#!/usr/bin/env python   
+
+import rospy
+import cflib
+from cflib.crazyflie.log import LogConfig
+from cflib.crazyflie import Crazyflie
+from cflib.utils import uri_helper
+
+uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
+
+# flapper 操作指令クラス
+class CfClient():
+    def __init__(self, uri):
+        cflib.crtp.init_drivers()
+
+        self.cf = Crazyflie(rw_cache='./cache')
+
+        self.cf.connected.add_callback(self.connected_callback)
+        self.cf.disconnected.add_callback(self.disconnected_callback)
+        self.cf.connection_failed.add_callback(self.connection_failed_callback)
+        self.cf.connection_lost.add_callback(self.connection_lost_callback)
+        
+        self.cf.open_link(uri)
+        if not self.cf.is_connected():
+            return
+        self.adjust_orientation_sensitivity()
+        self.activate_kalman_estimator()
+        self.activate_pid_controller()
+        self.tune_pid_gains()
+
+    def connected_callback(self, uri):
+        rospy.loginfo('Connected to %s' % uri)
+
+        # The definition of the logconfig can be made before connecting
+        self._lg_stab = LogConfig(name='Stabilizer', period_in_ms=100)
+        self._lg_stab.add_variable('stateEstimate.x', 'float')
+        self._lg_stab.add_variable('stateEstimate.y', 'float')
+        self._lg_stab.add_variable('stateEstimate.z', 'float')
+        self._lg_stab.add_variable('stabilizer.roll', 'float')
+        self._lg_stab.add_variable('stabilizer.pitch', 'float')
+        self._lg_stab.add_variable('stabilizer.yaw', 'float')
+        # The fetch-as argument can be set to FP16 to save space in the log packet
+        self._lg_stab.add_variable('pm.vbat', 'FP16')
+
+        # Adding the configuration cannot be done until a Crazyflie is
+        # connected, since we need to check that the variables we
+        # would like to log are in the TOC.
+        try:
+            self.cf.log.add_config(self._lg_stab)
+            # This callback will receive the data
+            self._lg_stab.data_received_cb.add_callback(self._stab_log_data)
+            # This callback will be called on errors
+            self._lg_stab.error_cb.add_callback(self._stab_log_error)
+            # Start the logging
+            
+            self._lg_stab.start()
+            Thread(target=self.keyboard_interrupt_callback).start()
+        except KeyError as e:
+            rospy.logerr('Could not start log configuration,'
+                  '{} not found in TOC'.format(str(e)))
+        except AttributeError:
+            rospy.logerr('Could not add Stabilizer log config, bad configuration.')
+
+    def keyboard_interrupt_callback():
+        while True:
+            if rospy.is_shutdown():
+                self.stop()
+                self.close()
+                break
+
+    def _stab_log_error(self, logconf, msg):
+        print('Error when logging %s: %s' % (logconf.name, msg))
+
+    def _stab_log_data(self, timestamp, data, logconf):
+        if rospy.is_shutdown():
+                self.stop()
+                self.close()
+        rospy.loginfo(f'[{timestamp}][{logconf.name}]: ')
+        for name, value in data.items():
+            rospy.loginfo(f'{name}: {value:3.3f} ')
+        
+    def connection_failed_callback(self, uri, msg):
+        rospy.logerr('Connection to %s failed: %s' % (uri, msg))
+                                                                
+    def connection_lost_callback(self, uri, msg):
+        rospy.logerr('Connection to %s lost: %s' % (uri, msg))
+        
+    def disconnected_callback(self, uri):
+        rospy.logerr('Disconnected from %s' % uri)  
+        
+    def adjust_orientation_sensitivity(self, orientation_std_dev=0.06):
+        self.cf.param.set_value('locSrv.extQuatStdDev', orientation_std_dev)
+
+    def activate_kalman_estimator(self):
+        self.cf.param.set_value('stabilizer.estimator', '2')
+
+    def activate_pid_controller(self):
+        self.cf.param.set_value('stabilizer.controller', '1')
+
+    def tune_pid_gains(self):
+        self.cf.param.set_value('posCtlPid.xKp', 1.0)
+        self.cf.param.set_value('posCtlPid.yKp', 1.0)
+        self.cf.param.set_value('posCtlPid.xKd', 0.1)
+        self.cf.param.set_value('posCtlPid.xKd', 0.1)
+        self.cf.param.set_value('pid_attitude.pitch_kp', 26.0)
+        
+    def send_pose(self, pos, quat, send_full_pose = True):
+        if send_full_pose:
+            self.cf.extpos.send_extpose(pos.x, pos.y, pos.z, quat.x, quat.y, quat.z, quat.w)
+        else:
+            self.cf.extpos.send_extpos(pos.x, pos.y, pos.z)
+        
+    def takeoff(self, height, duration):
+        self.cf.high_level_commander.takeoff(height, duration)
+        
+    def land(self, height, duration):
+        self.cf.high_level_commander.land(height, duration)
+        
+    def stop(self):
+        self.cf.high_level_commander.stop()
+        
+    def go_to(self, x, y, z, yaw ,duration_s):
+        self.cf.high_level_commander.go_to(x, y, z, yaw, duration_s)
+
+    def close(self):
+        self.cf.close_link()
+        
+    def is_connected(self):
+        return self.cf.is_connected()

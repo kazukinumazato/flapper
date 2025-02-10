@@ -1,0 +1,1 @@
+/home/mech-user/flapper_ws/devel/.private/flapper/share/roseus/ros/flapper/manifest.l
