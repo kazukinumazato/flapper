@@ -72,7 +72,6 @@ class CfClient():
         
     def adjust_orientation_sensitivity(self, orientation_std_dev=0.06):
         self.cf.param.set_value('locSrv.extQuatStdDev', orientation_std_dev)
-        rospy.loginfo('a')
 
     def activate_kalman_estimator(self):
         self.cf.param.set_value('stabilizer.estimator', '2')
@@ -102,8 +101,8 @@ class CfClient():
     def stop(self):
         self.cf.high_level_commander.stop()
         
-    def go_to(self, x, y, z, yaw ,duration_s):
-        self.cf.high_level_commander.go_to(x, y, z, yaw, duration_s)
+    def go_to(self, x, y, z, yaw ,duration_s, relative=False):
+        self.cf.high_level_commander.go_to(x, y, z, yaw, duration_s, relative)
 
     def close(self):
         self.cf.close_link()

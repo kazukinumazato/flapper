@@ -67,7 +67,6 @@ class Navigator():
         start_t = rospy.get_time()
         self.state_pub.publish(RobotState.APPROACH)
         while rospy.get_time() <= start_t + timeout:
-            rospy.sleep(0.1)
             chest_pos = self.chest_pose.position
             hand_pos = self.hand_pose.position
             drone_pos = self.drone_pose.position
@@ -82,8 +81,13 @@ class Navigator():
                 self.state_pub.publish(RobotState.PALM_LAND_READY)
                 break
             elif distance_chest_hand > 0.5:
-                self.drone_client.go_to(hand_pos.x, hand_pos.y, hand_pos.z + 0.5, 0, 5)
-            rospy.sleep(0.1)
+                deltaX = (hand_pos.x - drone_pos.x) / 10
+                deltaY = (hand_pos.y - drone_pos.y) / 10
+                deltaZ = (hand_pos.z + 0.5 - drone_pos.z) / 10
+                self.drone_client.go_to(deltaX,
+                                        deltaY,
+                                        deltaZ, 0, 0.5, True)
+            rospy.sleep(0.5)
 
     def palm_land(self, duration = 3):
         rospy.loginfo('palm land started')
@@ -92,3 +96,4 @@ class Navigator():
         self.drone_client.land(hand_height, duration)
         rospy.sleep(duration)
         rospy.loginfo('palm land succeeded')
+        self.state_pub.publish(RobotState.STOP)
