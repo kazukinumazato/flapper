@@ -30,7 +30,7 @@ class Navigator():
     def hand_pose_sub_callback(self, msg):
         self.hand_pose = msg.pose
 
-    def takeoff(self, height = 0.5, duration = 3, threshold = 0.01, timeout = 10):
+    def takeoff(self, height = 1, duration = 3, threshold = 0.01, timeout = 10):
         if not hasattr(self, 'drone_pose'):
             rospy.logwarn('drone pose is not acquired yet. Unable to take off.')
             return
@@ -39,6 +39,7 @@ class Navigator():
         self.state_pub.publish(RobotState.TAKEOFF)
         start_t = rospy.get_time()
         while rospy.get_time() <= start_t + timeout:
+            rospy.sleep(0.1)
             if abs(self.drone_pose.position.z - height) <= threshold:
                 rospy.sleep(2)
                 rospy.loginfo('takeoff succeeded')
@@ -66,6 +67,7 @@ class Navigator():
         start_t = rospy.get_time()
         self.state_pub.publish(RobotState.APPROACH)
         while rospy.get_time() <= start_t + timeout:
+            rospy.sleep(0.1)
             chest_pos = self.chest_pose.position
             hand_pos = self.hand_pose.position
             drone_pos = self.drone_pose.position
