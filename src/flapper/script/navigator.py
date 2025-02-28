@@ -80,11 +80,22 @@ class Navigator():
             drone_pos = self.drone_pose.position
             distance_chest_hand = dist(chest_pos, hand_pos)
             distance_hand_drone_on_XY_plane = dist(hand_pos, drone_pos, True)
+            distance_chest_drone_on_XY_plane = dist(chest_pos, drone_pos, True)
             rospy.loginfo(f'distance_chest_hand: {distance_chest_hand} distance_hand_drone:{distance_hand_drone_on_XY_plane}')
             if distance_hand_drone_on_XY_plane < 0.05:
                 rospy.loginfo('palm land is ready')
                 self.state_pub.publish(RobotState.PALM_LAND_READY)
                 break
+            elif distance_chest_drone_on_XY_plane < 0.4:
+                rospy.logwarn('chest and drone are too close. drone is going away.')
+                deltaX = drone_pos.x - chest_pos.x
+                deltaY = drone_pos.y - chest_pos.y
+                norm = math.sqrt(deltaX ** 2 + deltaY ** 2)
+                deltaX /= norm
+                deltaY /= norm
+                self.drone_client.go_to(deltaX/5,
+                                        deltaY/5,
+                                        0, 0, 0.1, True)
             elif distance_chest_hand > 0.5:
                 deltaX = (hand_pos.x - drone_pos.x) / 10
                 deltaY = (hand_pos.y - drone_pos.y) / 10
