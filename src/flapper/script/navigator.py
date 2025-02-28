@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env pytthon
 
 import rospy
 import math
@@ -64,8 +64,8 @@ class Navigator():
         self.state_pub.publish(RobotState.STOP)
 
     def approach(self, timeout = 180):
-        def dist(pos1, pos2, 2d = False):
-            if 2d:
+        def dist(pos1, pos2, plane = False):
+            if plane:
                 return math.sqrt((pos1.x - pos2.x)**2 +
                                  (pos1.y - pos2.y)**2)
             return math.sqrt((pos1.x - pos2.x)**2 +
@@ -80,7 +80,7 @@ class Navigator():
             drone_pos = self.drone_pose.position
             distance_chest_hand = dist(chest_pos, hand_pos)
             distance_hand_drone_on_XY_plane = dist(hand_pos, drone_pos, True)
-            rospy.loginfo(f'distance_chest_hand: {distance_chest_hand} distance_hand_body:{distance_hand_body_on_XY_plane}')
+            rospy.loginfo(f'distance_chest_hand: {distance_chest_hand} distance_hand_drone:{distance_hand_drone_on_XY_plane}')
             if distance_hand_drone_on_XY_plane < 0.05:
                 rospy.loginfo('palm land is ready')
                 self.state_pub.publish(RobotState.PALM_LAND_READY)
@@ -92,6 +92,7 @@ class Navigator():
                 self.drone_client.go_to(deltaX,
                                         deltaY,
                                         deltaZ, 0, 0.1, True)
+                # self.drone_client.go_to(hand_pos.x, hand_pos.y, hand_pos.z, 0, 5)
             rospy.sleep(0.5)
 
     def palm_land(self, duration = 3):

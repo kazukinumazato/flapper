@@ -83,8 +83,8 @@ class CfClient():
         self.cf.param.set_value('posCtlPid.xKp', 1.0)
         self.cf.param.set_value('posCtlPid.yKp', 1.0)
         self.cf.param.set_value('posCtlPid.xKd', 0.1)
-        self.cf.param.set_value('posCtlPid.xKd', 0.1)
-        self.cf.param.set_value('pid_attitude.pitch_kp', 26.0)
+        self.cf.param.set_value('posCtlPid.yKd', 0.1)
+        self.cf.param.set_value('pid_attitude.pitch_kp', 52.0)
         
     def send_pose(self, pos, quat, send_full_pose = True):
         if send_full_pose:
