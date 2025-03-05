@@ -103,7 +103,6 @@ class Navigator():
                 self.drone_client.go_to(deltaX,
                                         deltaY,
                                         deltaZ, 0, 0.1, True)
-                # self.drone_client.go_to(hand_pos.x, hand_pos.y, hand_pos.z, 0, 5)
             rospy.sleep(0.5)
 
     def palm_land(self, duration = 3):
