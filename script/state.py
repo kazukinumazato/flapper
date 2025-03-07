@@ -2,10 +2,12 @@
 
 import rospy
 from smach import State, StateMachine
-from std_msgs.msg import Empty 
+from std_msgs.msg import Empty
+from geometry_msgs.msg import PoseStamped
 import math
 from robot import Flapper
 from variables import *
+from util import dist
 import traceback
 
 class Start(State):
@@ -26,9 +28,7 @@ class Start(State):
                                 return 'failure'
                 return "success"
 
-
-
-class BaseState(State):
+class SingleCommandState(State):
         def __init__(self, robot, func, start_flight_state, goal_flight_state, timeout = 60):
                 State.__init__(self, outcomes = ['success', 'failure'])
                 self.robot = robot
@@ -54,29 +54,126 @@ class BaseState(State):
                 rospy.logwarn(self.__class__.__name__ + ': the robot state ({}) is not at the goal_flight_state ({}).'.format(self.robot.state, self.goal_flight_state))
                 return "failure"
 
-class Takeoff(BaseState):
+class Takeoff(SingleCommandState):
         # 離陸
         def __init__(self, robot, func):   
-                BaseState.__init__(self, robot, func, RobotState.START, RobotState.HOVER)
+                SingleCommandState.__init__(self, robot, func, RobotState.START, RobotState.HOVER)
 
         def execute(self, userdata):
                 if self.robot.state == RobotState.HOVER:
                         rospy.loginfo("The robot is already hovering.")
                         return 'success'
-                return BaseState.execute(self, userdata)
+                return SingleCommandState.execute(self, userdata)
 
-class Land(BaseState):
+class Land(SingleCommandState):
         def __init__(self, robot, func):
-                BaseState.__init__(self, robot, func, RobotState.HOVER, RobotState.STOP)
-                        
-class Approach(BaseState):
-        def __init__(self, robot, func):
-                BaseState.__init__(self, robot, func, RobotState.HOVER, RobotState.PALM_LAND_READY, timeout=180)
-
-class PalmLand(BaseState):
-        def __init__(self, robot, func):
-                BaseState.__init__(self, robot, func, RobotState.PALM_LAND_READY, RobotState.STOP)
+                SingleCommandState.__init__(self, robot, func, RobotState.HOVER, RobotState.STOP)
                 
+class PalmLand(SingleCommandState):
+        def __init__(self, robot, func):
+                SingleCommandState.__init__(self, robot, func, RobotState.PALM_LAND_READY, RobotState.STOP)
+                        
+class Approach(State):
+        def __init__(self, robot, timeout=120, safety_radius = 0.45, threshold = 0.1):
+                State.__init__(self, outcomes=['stay', 'palm_land', 'failure'])
+                self.robot = robot
+                self.approach_start_pub = rospy.Publisher('approach_start', Empty)
+                self.approach_stop_pub = rospy.Publisher('approach_stop', Empty)
+                self.chest_pose_sub = rospy.Subscriber('mocap_node/mocap/chest/pose',
+                                                       PoseStamped,
+                                                       self.chest_pose_sub_callback)
+                self.hand_pose_sub = rospy.Subscriber('mocap_node/mocap/hand/pose',
+                                                      PoseStamped,
+                                                      self.hand_pose_sub_callback)
+                self.drone_pose_sub = rospy.Subscriber('mocap_node/mocap/flapper/pose',
+                                                       PoseStamped,
+                                                       self.drone_pose_sub_callback)        
+                self.timeout = timeout
+                self.safety_radius = safety_radius
+                self.threshold = threshold
+        def chest_pose_sub_callback(self, msg):
+                self.chest_pose = msg.pose
+        
+        def hand_pose_sub_callback(self, msg):
+                self.hand_pose = msg.pose
+
+        def drone_pose_sub_callback(self, msg):
+                self.drone_pose = msg.pose
+                
+        def execute(self, userdata):
+                self.approach_start_pub.publish()
+                start_t = rospy.get_time()
+                while rospy.get_time() < start_t + self.timeout:
+                        if rospy.is_shutdown():
+                                return 'failure'
+                        chest_pos = self.chest_pose.position
+                        hand_pos = self.hand_pose.position
+                        drone_pos = self.drone_pose.position
+                        distance_hand_drone_on_XY_plane = dist(hand_pos, drone_pos, True)
+                        distance_chest_hand = dist(chest_pos, hand_pos)
+                        rospy.loginfo(f'distance_chest_hand: {distance_chest_hand}')
+                        if distance_chest_hand < self.safety_radius:
+                                self.approach_stop_pub.publish()
+                                return 'stay'
+                        if distance_hand_drone_on_XY_plane < self.threshold:
+                                self.approach_stop_pub.publish()
+                                return 'palm_land'
+                        rospy.sleep(0.1)
+                self.approach_stop_pub.publish()
+                return 'failure'
+
+
+class Stay(State):
+        def __init__(self, timeout=120, safety_radius=0.45):
+                State.__init__(self, outcomes=['approach', 'failure'])
+                self.chest_pose_sub = rospy.Subscriber('mocap_node/mocap/chest/pose',
+                                                       PoseStamped,
+                                                       self.chest_pose_sub_callback)
+                self.hand_pose_sub = rospy.Subscriber('mocap_node/mocap/hand/pose',
+                                                      PoseStamped,
+                                                      self.hand_pose_sub_callback)       
+                self.timeout = timeout
+                self.safety_radius = safety_radius
+
+        def chest_pose_sub_callback(self, msg):
+                self.chest_pose = msg.pose
+        
+        def hand_pose_sub_callback(self, msg):
+                self.hand_pose = msg.pose
+                
+        def execute(self, userdata):
+                start_t = rospy.get_time()
+                while rospy.get_time() < start_t + self.timeout:
+                        if rospy.is_shutdown():
+                                return 'failure'
+                        chest_pos = self.chest_pose.position
+                        hand_pos = self.hand_pose.position
+                        distance_chest_hand = dist(chest_pos, hand_pos)
+                        rospy.loginfo(f'distance_chest_hand: {distance_chest_hand}')
+                        if distance_chest_hand > self.safety_radius:
+                                return 'approach'
+                return 'failure'
+
+class PalmLand(State):
+        def __init__(self, robot, timeout=10):
+                State.__init__(self, outcomes=['success', 'failure'])
+                self.robot = robot
+                self.timeout = timeout
+
+        def execute(self, userdata):
+                self.robot.palm_land()
+                start_t = rospy.get_time()
+                while rospy.get_time() < start_t + self.timeout:
+                        if rospy.is_shutdown():
+                                return 'failure'
+                        if self.robot.state == RobotState.STOP:
+                                return 'success'
+                return 'failure'
+
+        def drone_pose_sub_callback(self, msg):
+                self.drone_pose = msg.pose
+       
+
 def main():
     rospy.init_node('state_machine')
 
@@ -90,10 +187,12 @@ def main():
         StateMachine.add('Start', Start(), 
                          transitions={'success': 'Takeoff', 'failure': 'failure'})
         StateMachine.add('Takeoff', Takeoff(flapper, flapper.takeoff), 
-                         transitions={'success':'Approach', 'failure': 'failure'})
-        StateMachine.add('Approach', Approach(flapper, flapper.approach),
-                         transitions={'success': 'PalmLand', 'failure': 'failure'})
-        StateMachine.add('PalmLand', PalmLand(flapper, flapper.palm_land),
+                         transitions={'success':'Stay', 'failure': 'failure'})
+        StateMachine.add('Approach', Approach(flapper),
+                         transitions={'palm_land': 'PalmLand', 'stay': 'Stay','failure': 'failure'})
+        StateMachine.add('Stay', Stay(),
+                         transitions={'approach': 'Approach', 'failure': 'failure'})
+        StateMachine.add('PalmLand', PalmLand(flapper),
                          transitions={'success': 'success', 'failure': 'failure'})
 
     # Execute SMACH plan

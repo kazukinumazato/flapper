@@ -3,8 +3,7 @@
 import rospy
 import cflib
 from cflib.crazyflie import Crazyflie
-from cflib.utils import uri_helper
-import logging
+from geometry_msgs.msg import PoseStamped
 
 from threading import Thread
 
@@ -56,6 +55,9 @@ class CfClient():
         self.activate_kalman_estimator()
         self.activate_pid_controller()
         self.tune_pid_gains()
+        self.mocap_sub = rospy.Subscriber('mocap_node/mocap/flapper/pose',
+                                          PoseStamped,
+                                          self.mocap_sub_callback)
         
     def connection_failed_callback(self, uri, msg):
         rospy.logerr('Connection to %s failed: %s' % (uri, msg))
@@ -85,6 +87,9 @@ class CfClient():
         self.cf.param.set_value('posCtlPid.xKd', 0.1)
         self.cf.param.set_value('posCtlPid.yKd', 0.1)
         self.cf.param.set_value('pid_attitude.pitch_kp', 52.0)
+
+    def mocap_sub_callback(self, msg):
+        self.send_pose(msg.pose.position, msg.pose.orientation)
         
     def send_pose(self, pos, quat, send_full_pose = True):
         if send_full_pose:
@@ -92,10 +97,10 @@ class CfClient():
         else:
             self.cf.extpos.send_extpos(pos.x, pos.y, pos.z)
         
-    def takeoff(self, height, duration):
+    def takeoff(self, height = 1, duration = 3):
         self.cf.high_level_commander.takeoff(height, duration)
         
-    def land(self, height, duration):
+    def land(self, height = 0, duration = 3):
         self.cf.high_level_commander.land(height, duration)
         
     def stop(self):
