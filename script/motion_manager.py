@@ -79,6 +79,9 @@ class MotionManager():
         self.state_pub.publish(RobotState.STOP)
     
     def palm_land(self, duration = 3):
+        if self.robot_state == RobotState.START or self.robot_state == RobotState.STOP:
+            rospy.loginfo('The robot is already landed.')
+            return
         rospy.loginfo('palm land started')
         self.robot_state = RobotState.PALM_LAND
         self.state_pub.publish(RobotState.PALM_LAND)

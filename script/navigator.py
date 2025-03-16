@@ -6,6 +6,7 @@ from geometry_msgs.msg import Vector3, PoseStamped
 from std_msgs.msg import Empty
 from util import dist
 from variables import *
+import numpy as np
 
 class Navigator():
     def __init__(self, safety_radius = 0.4):
@@ -26,6 +27,7 @@ class Navigator():
                                                   Empty,
                                                   self.approach_stop_sub_callback)
         self.approach_pub = rospy.Publisher('approach', Vector3)
+        self.approach_dummy_pub = rospy.Publisher('approach_dummy', Vector3)
         self.running = False
 
     def drone_pose_sub_callback(self, msg):
@@ -50,29 +52,38 @@ class Navigator():
         self.running = True
         start_t = rospy.get_time()
         while rospy.get_time() <= start_t + timeout and self.running:
+            scale = 0.8
             chest_pos = self.chest_pose.position
             hand_pos = self.hand_pose.position
             drone_pos = self.drone_pose.position
             distance_chest_drone_on_XY_plane = dist(chest_pos, drone_pos, True)
-            if distance_chest_drone_on_XY_plane < self.safety_radius:
-                rospy.logwarn('chest and drone are too close. drone is going away.')
-                deltaX = drone_pos.x - chest_pos.x
-                deltaY = drone_pos.y - chest_pos.y
-                norm = math.sqrt(deltaX ** 2 + deltaY ** 2)
-                deltaX /= (norm * 5)
-                deltaY /= (norm * 5)
-                goal_pos = Vector3(drone_pos.x + deltaX,
-                                   drone_pos.y + deltaY,
-                                   drone_pos.z)
+            distance_chest_hand_on_XY_plane = dist(chest_pos, hand_pos, True)
+            height_above_hand = 0.4
+            goal_dist_z = (hand_pos.z + height_above_hand - drone_pos.z) * scale
+            goal_pos_z = hand_pos.z + height_above_hand - goal_dist_z
+            if distance_chest_drone_on_XY_plane < distance_chest_hand_on_XY_plane:
+                rospy.loginfo('drone is running on circle.')
+                vector_c_h = np.array([hand_pos.x - chest_pos.x, hand_pos.y - chest_pos.y])
+                vector_c_d = np.array([drone_pos.x - chest_pos.x, drone_pos.y - chest_pos.y])
+                cross = np.cross(vector_c_h, vector_c_d)
+                dot = np.dot(vector_c_h, vector_c_d)
+                goal_theta = np.arctan2(cross, dot) * scale
+                r_matrix = np.array([[np.cos(goal_theta), -np.sin(goal_theta)],
+                                     [np.sin(goal_theta), np.cos(goal_theta)]])
+                vector_c_g = r_matrix @ vector_c_h
+                goal_pos = Vector3(chest_pos.x + vector_c_g[0],
+                                   chest_pos.y + vector_c_g[1],
+                                   goal_pos_z)
                 self.approach_pub.publish(goal_pos)
+                rospy.loginfo('goal_pos: {}'.format(goal_pos))
             else:
-                deltaX = (hand_pos.x - drone_pos.x) / 10
-                deltaY = (hand_pos.y - drone_pos.y) / 10
-                deltaZ = (hand_pos.z + 0.2 - drone_pos.z) / 10
-                goal_pos = Vector3(drone_pos.x + deltaX,
-                                   drone_pos.y + deltaY,
-                                   drone_pos.z + deltaZ)
+                goal_dist_x = (hand_pos.x - drone_pos.x) * scale
+                goal_dist_y = (hand_pos.y - drone_pos.y) * scale
+                goal_pos = Vector3(hand_pos.x - goal_dist_x,
+                                   hand_pos.y - goal_dist_y,
+                                   goal_pos_z)
                 self.approach_pub.publish(goal_pos)
+                rospy.loginfo('goal_pos: {}'.format(goal_pos))
             rospy.sleep(0.1)
         self.running = False
         rospy.loginfo('drone stay')

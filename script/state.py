@@ -144,8 +144,15 @@ class Stay(State):
         def execute(self, userdata):
                 start_t = rospy.get_time()
                 while rospy.get_time() < start_t + self.timeout:
+                        rospy.sleep(0.1)
                         if rospy.is_shutdown():
                                 return 'failure'
+                        if not hasattr(self, 'chest_pose'):
+                                rospy.logwarn('Unable to get chest_pose. Check mocap settings.')
+                                continue
+                        if not hasattr(self, 'hand_pose'):
+                                rospy.logwarn('Unable to get chest_pose. Check mocap settings.')
+                                continue
                         chest_pos = self.chest_pose.position
                         hand_pos = self.hand_pose.position
                         distance_chest_hand = dist(chest_pos, hand_pos)
