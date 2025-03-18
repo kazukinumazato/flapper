@@ -100,8 +100,9 @@ class CfClient():
     def takeoff(self, height = 1, duration = 3):
         self.cf.high_level_commander.takeoff(height, duration)
         
-    def land(self, height = 0, duration = 3):
-        self.cf.high_level_commander.land(height, duration)
+    def land(self, height = 0, duration = 3, yaw = 0.0):
+        group_mask = 0
+        self.cf.high_level_commander.land(height, duration, group_mask, yaw)
         
     def stop(self):
         self.cf.high_level_commander.stop()

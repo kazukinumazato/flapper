@@ -78,7 +78,7 @@ class MotionManager():
         self.robot_state = RobotState.STOP
         self.state_pub.publish(RobotState.STOP)
     
-    def palm_land(self, duration = 3):
+    def palm_land(self, yaw ,duration = 3):
         if self.robot_state == RobotState.START or self.robot_state == RobotState.STOP:
             rospy.loginfo('The robot is already landed.')
             return
@@ -86,7 +86,7 @@ class MotionManager():
         self.robot_state = RobotState.PALM_LAND
         self.state_pub.publish(RobotState.PALM_LAND)
         hand_height = self.hand_pose.position.z
-        self.drone_client.land(hand_height, duration)
+        self.drone_client.land(hand_height, duration, yaw)
         rospy.sleep(duration)
         rospy.loginfo('palm land succeeded')
         self.robot_state = RobotState.STOP

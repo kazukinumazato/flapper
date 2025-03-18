@@ -166,9 +166,12 @@ class PalmLand(State):
                 State.__init__(self, outcomes=['success', 'failure'])
                 self.robot = robot
                 self.timeout = timeout
+                self.drone_pose_sub = rospy.Subscriber('mocap_node/mocap/flapper/pose',
+                                                       PoseStamped,
+                                                       self.drone_pose_sub_callback)        
 
         def execute(self, userdata):
-                self.robot.palm_land()
+                self.robot.palm_land(self.drone_pose)
                 start_t = rospy.get_time()
                 while rospy.get_time() < start_t + self.timeout:
                         if rospy.is_shutdown():

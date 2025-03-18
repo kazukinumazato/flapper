@@ -2,14 +2,15 @@
 
 import rospy
 import math
-from geometry_msgs.msg import Vector3, PoseStamped
+from geometry_msgs.msg import Vector3, PoseStamped, Pose, Quaternion
 from std_msgs.msg import Empty
 from util import dist
 from variables import *
 import numpy as np
+from scipy.spatial.transform import Rotation as R
 
 class Navigator():
-    def __init__(self, safety_radius = 0.4):
+    def __init__(self, deceleration_radius = 1.0, dist_close = 0.1):
         self.drone_pose_sub = rospy.Subscriber('mocap_node/mocap/flapper/pose',                 
                                                PoseStamped,
                                                self.drone_pose_sub_callback)
@@ -19,16 +20,16 @@ class Navigator():
         self.hand_pose_sub = rospy.Subscriber('mocap_node/mocap/hand/pose',
                                               PoseStamped,                                          
                                               self.hand_pose_sub_callback)                          
-        self.safety_radius = safety_radius
+        self.deceleration_radius = deceleration_radius
         self.approach_start_sub = rospy.Subscriber('approach_start',
                                                    Empty,
                                                    self.approach_start_sub_callback)
         self.approach_stop_sub = rospy.Subscriber('approach_stop',
                                                   Empty,
                                                   self.approach_stop_sub_callback)
-        self.approach_pub = rospy.Publisher('approach', Vector3)
-        self.approach_dummy_pub = rospy.Publisher('approach_dummy', Vector3)
+        self.approach_pub = rospy.Publisher('approach', Pose)
         self.running = False
+        self.dist_close = dist_close
 
     def drone_pose_sub_callback(self, msg):
         self.drone_pose = msg.pose
@@ -52,15 +53,18 @@ class Navigator():
         self.running = True
         start_t = rospy.get_time()
         while rospy.get_time() <= start_t + timeout and self.running:
-            scale = 0.8
             chest_pos = self.chest_pose.position
             hand_pos = self.hand_pose.position
             drone_pos = self.drone_pose.position
             distance_chest_drone_on_XY_plane = dist(chest_pos, drone_pos, True)
             distance_chest_hand_on_XY_plane = dist(chest_pos, hand_pos, True)
+            distance_hand_drone_on_XY_plane = dist(hand_pos, drone_pos, True)
             height_above_hand = 0.4
+            scale = 0.8 if distance_hand_drone_on_XY_plane > self.dist_close else 0.5
             goal_dist_z = (hand_pos.z + height_above_hand - drone_pos.z) * scale
             goal_pos_z = hand_pos.z + height_above_hand - goal_dist_z
+            goal_ori = self.look_at_quaternion(drone_pos, chest_pos)
+            rospy.loginfo('goal_ori: {}'.format(goal_ori))
             if distance_chest_drone_on_XY_plane < distance_chest_hand_on_XY_plane:
                 rospy.loginfo('drone is running on circle.')
                 vector_c_h = np.array([hand_pos.x - chest_pos.x, hand_pos.y - chest_pos.y])
@@ -74,19 +78,43 @@ class Navigator():
                 goal_pos = Vector3(chest_pos.x + vector_c_g[0],
                                    chest_pos.y + vector_c_g[1],
                                    goal_pos_z)
-                self.approach_pub.publish(goal_pos)
+                self.approach_pub.publish(Pose(goal_pos, goal_ori))
                 rospy.loginfo('goal_pos: {}'.format(goal_pos))
             else:
-                goal_dist_x = (hand_pos.x - drone_pos.x) * scale
-                goal_dist_y = (hand_pos.y - drone_pos.y) * scale
-                goal_pos = Vector3(hand_pos.x - goal_dist_x,
-                                   hand_pos.y - goal_dist_y,
-                                   goal_pos_z)
-                self.approach_pub.publish(goal_pos)
-                rospy.loginfo('goal_pos: {}'.format(goal_pos))
+                if distance_chest_drone_on_XY_plane < self.deceleration_radius:
+                    goal_dist_x = (hand_pos.x - drone_pos.x) * scale
+                    goal_dist_y = (hand_pos.y - drone_pos.y) * scale
+                    goal_pos = Vector3(hand_pos.x - goal_dist_x,
+                                       hand_pos.y - goal_dist_y,
+                                       goal_pos_z)
+                    self.approach_pub.publish(Pose(goal_pos, goal_ori))
+                    rospy.loginfo('goal_pos: {}'.format(goal_pos))
+                else:
+                    vector_d_h = np.array([hand_pos.x - drone_pos.x, hand_pos.y - drone_pos.y])
+                    vector_d_h_normalized = vector_d_h / np.linalg.norm(vector_d_h)
+                    goal_pos = Vector3(drone_pos.x + vector_d_h_normalized[0] * self.deceleration_radius * (1 - scale),
+                                       drone_pos.y + vector_d_h_normalized[1] * self.deceleration_radius * (1 - scale),
+                                       goal_pos_z)
+                    self.approach_pub.publish(Pose(goal_pos, goal_ori))
+                    rospy.loginfo('goal_pos: {}'.format(goal_pos))
             rospy.sleep(0.1)
         self.running = False
         rospy.loginfo('drone stay')
+
+    def look_at_quaternion(self, r, p, scale=0.1):
+        vector_r_p = np.array([p.x - r.x, p.y - r.y])
+        e_x = np.array([1, 0])
+        cross = np.cross(e_x, vector_r_p)
+        dot = np.dot(e_x, vector_r_p)
+        chest_theta = np.arctan2(cross, dot)
+        drone_ori = self.drone_pose.orientation
+        current_theta = R.from_quat([drone_ori.x, drone_ori.y, drone_ori.z, drone_ori.w]).as_euler('xyz')[2]
+        goal_theta = (chest_theta - current_theta) * (1 - scale) + current_theta
+        rospy.loginfo('chest_theta: {}, current_theta: {}, goal_theta: {}, difference: {}'.format(np.rad2deg(chest_theta), np.rad2deg(current_theta), np.rad2deg(goal_theta), np.rad2deg(chest_theta - current_theta)))
+        quaternion = R.from_euler('xyz', [0, 0, goal_theta]).as_quat()
+        quaternion = Quaternion(quaternion[0], quaternion[1], quaternion[2], quaternion[3])
+        return quaternion  
+    
 
 if __name__ == '__main__':
     rospy.init_node('navigator')
