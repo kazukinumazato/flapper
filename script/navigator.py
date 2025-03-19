@@ -10,7 +10,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 
 class Navigator():
-    def __init__(self, deceleration_radius = 1.0, dist_close = 0.1):
+    def __init__(self, deceleration_radius = 1.0, dist_close = 0.3):
         self.drone_pose_sub = rospy.Subscriber('mocap_node/mocap/flapper/pose',                 
                                                PoseStamped,
                                                self.drone_pose_sub_callback)
@@ -59,7 +59,7 @@ class Navigator():
             distance_chest_drone_on_XY_plane = dist(chest_pos, drone_pos, True)
             distance_chest_hand_on_XY_plane = dist(chest_pos, hand_pos, True)
             distance_hand_drone_on_XY_plane = dist(hand_pos, drone_pos, True)
-            height_above_hand = 0.4
+            height_above_hand = 0.2
             scale = 0.8 if distance_hand_drone_on_XY_plane > self.dist_close else 0.5
             goal_dist_z = (hand_pos.z + height_above_hand - drone_pos.z) * scale
             goal_pos_z = hand_pos.z + height_above_hand - goal_dist_z
@@ -101,7 +101,7 @@ class Navigator():
         self.running = False
         rospy.loginfo('drone stay')
 
-    def look_at_quaternion(self, r, p, scale=0.1):
+    def look_at_quaternion(self, r, p, theta_scale=0.1):
         vector_r_p = np.array([p.x - r.x, p.y - r.y])
         e_x = np.array([1, 0])
         cross = np.cross(e_x, vector_r_p)
@@ -109,7 +109,7 @@ class Navigator():
         chest_theta = np.arctan2(cross, dot)
         drone_ori = self.drone_pose.orientation
         current_theta = R.from_quat([drone_ori.x, drone_ori.y, drone_ori.z, drone_ori.w]).as_euler('xyz')[2]
-        goal_theta = (chest_theta - current_theta) * (1 - scale) + current_theta
+        goal_theta = (chest_theta - current_theta) * theta_scale + current_theta
         rospy.loginfo('chest_theta: {}, current_theta: {}, goal_theta: {}, difference: {}'.format(np.rad2deg(chest_theta), np.rad2deg(current_theta), np.rad2deg(goal_theta), np.rad2deg(chest_theta - current_theta)))
         quaternion = R.from_euler('xyz', [0, 0, goal_theta]).as_quat()
         quaternion = Quaternion(quaternion[0], quaternion[1], quaternion[2], quaternion[3])

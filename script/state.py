@@ -75,7 +75,7 @@ class PalmLand(SingleCommandState):
                 SingleCommandState.__init__(self, robot, func, RobotState.PALM_LAND_READY, RobotState.STOP)
                         
 class Approach(State):
-        def __init__(self, robot, timeout=120, safety_radius = 0.45, threshold = 0.1):
+        def __init__(self, robot, timeout=120, safety_radius = 0.30, threshold = 0.1):
                 State.__init__(self, outcomes=['stay', 'palm_land', 'failure'])
                 self.robot = robot
                 self.approach_start_pub = rospy.Publisher('approach_start', Empty)
@@ -125,7 +125,7 @@ class Approach(State):
 
 
 class Stay(State):
-        def __init__(self, timeout=120, safety_radius=0.45):
+        def __init__(self, timeout=120, safety_radius=0.30):
                 State.__init__(self, outcomes=['approach', 'failure'])
                 self.chest_pose_sub = rospy.Subscriber('mocap_node/mocap/chest/pose',
                                                        PoseStamped,
