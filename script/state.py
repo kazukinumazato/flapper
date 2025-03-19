@@ -2,6 +2,7 @@
 
 import rospy
 from smach import State, StateMachine
+import smach_ros
 from std_msgs.msg import Empty
 from geometry_msgs.msg import PoseStamped
 import math
@@ -206,9 +207,14 @@ def main():
                          transitions={'success': 'success', 'failure': 'failure'})
 
     # Execute SMACH plan
+    sis = smach_ros.IntrospectionServer('smach_server', sm, '/SM_ROOT')
+    sis.start()
     outcome = sm.execute()
     if outcome == 'failure':
             flapper.stop()
+    rospy.spin()    
+    sis.stop()
+
 
 if __name__ == '__main__':
         try:
