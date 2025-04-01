@@ -3,7 +3,7 @@
 import rospy
 import math
 from geometry_msgs.msg import Vector3, PoseStamped, Pose, Quaternion
-from std_msgs.msg import Empty
+from std_msgs.msg import Empty, Float64
 from util import dist
 from variables import *
 import numpy as np
@@ -28,6 +28,9 @@ class Navigator():
                                                   Empty,
                                                   self.approach_stop_sub_callback)
         self.approach_pub = rospy.Publisher('approach', Pose)
+        self.distance_chest_drone_on_XY_plane_pub = rospy.Publisher('distance/chest_drone_on_XY_plane', Float64)
+        self.distance_chest_hand_on_XY_plane_pub = rospy.Publisher('distance/chest_hand_on_XY_plane', Float64)
+        self.distance_hand_drone_on_XY_plane_pub = rospy.Publisher('distance/hand_drone_on_XY_plane', Float64)
         self.running = False
         self.dist_close = dist_close
 
@@ -59,6 +62,9 @@ class Navigator():
             distance_chest_drone_on_XY_plane = dist(chest_pos, drone_pos, True)
             distance_chest_hand_on_XY_plane = dist(chest_pos, hand_pos, True)
             distance_hand_drone_on_XY_plane = dist(hand_pos, drone_pos, True)
+            self.distance_chest_drone_on_XY_plane_pub.publish(Float64(distance_chest_drone_on_XY_plane))
+            self.distance_chest_hand_on_XY_plane_pub.publish(Float64(distance_chest_hand_on_XY_plane))
+            self.distance_hand_drone_on_XY_plane_pub.publish(Float64(distance_hand_drone_on_XY_plane))
             height_above_hand = 0.2
             scale = 0.8 if distance_hand_drone_on_XY_plane > self.dist_close else 0.5
             goal_dist_z = (hand_pos.z + height_above_hand - drone_pos.z) * scale

@@ -13,8 +13,8 @@ STATE_LABELS = {
     0: "START",
     1: "TAKEOFF",
     2: "LAND",
-    3: "STAY",
-    4: "APPROACH",
+    3: "STAY1",
+    4: "APPROACH1",
     5: "PALM_LAND",
     6: "STOP"
 }
@@ -40,6 +40,7 @@ def visualize_pose_data(bag_path, actual_topic, target_topic, state_topic, chest
     arrow_length = 0.1  # 矢印の長さ
     line_break_threshold = 1.0  # 1秒以上空いた場合に線を切る
     last_target_point = None  # Approachラベル用
+    last_actual_point = None  # Approachラベル用
 
     # rosbags のデータを読み込み
     with rosbag.Bag(bag_path, "r") as bag:
@@ -85,8 +86,8 @@ def visualize_pose_data(bag_path, actual_topic, target_topic, state_topic, chest
 
                     # Approach ラベル
                     if last_target_point and (current_time - last_target_point[0]) > line_break_threshold:
-                        special_labels.append((last_target_point[1:], "STAY"))
-                        special_labels.append(([x, y, z], "APPROACH"))
+                        special_labels.append((last_target_point[0:], "STAY2"))
+                        special_labels.append(([current_time, x, y, z], "APPROACH2"))
 
                     last_target_point = (current_time, x, y, z)
 
@@ -106,6 +107,7 @@ def visualize_pose_data(bag_path, actual_topic, target_topic, state_topic, chest
                     # 矢印の方向（X軸）
                     direction = rot_matrix @ np.array([arrow_length, 0, 0])
                     actual_quivers.append(direction)
+                    
 
             elif topic == chest_topic and chest_hand_plotting:
                 if last_chest_time is None or (current_time - last_chest_time) >= time_interval:
@@ -163,31 +165,52 @@ def visualize_pose_data(bag_path, actual_topic, target_topic, state_topic, chest
     for t_val, state_val in state_labels:
         if state_val in STATE_LABELS:
             closest_index = min(range(len(actual_t)), key=lambda i: abs(actual_t[i] - t_val))
-            label_pos_for_actual = (actual_x[closest_index], actual_y[closest_index], actual_z[closest_index] + (-0.3 if STATE_LABELS[state_val] == "STOP" or STATE_LABELS[state_val] == "STAY" else 0.3))
-            ax.text(*label_pos_for_actual, STATE_LABELS[state_val], color="black", fontsize=10)
+            label_pos_for_actual = (actual_x[closest_index], actual_y[closest_index], actual_z[closest_index] + (-0.9 if STATE_LABELS[state_val] == "STOP" else -0.3 if STATE_LABELS[state_val] == "STAY1" else 0.5 if STATE_LABELS[state_val] == "APPROACH1" else 0.9 if STATE_LABELS[state_val] == "PALM_LAND" else 0.3))
+            ax.text(*label_pos_for_actual, STATE_LABELS[state_val], color="red", fontsize=10, fontweight="bold")
             ax.plot([actual_x[closest_index], label_pos_for_actual[0]], [actual_y[closest_index], label_pos_for_actual[1]], [actual_z[closest_index], label_pos_for_actual[2]], "k--")
 
     # Stay / Approach ラベル
-    for (x, y, z), label in special_labels:
-        label_pos_for_actual = (x, y, z + 0.3)
-        ax.text(*label_pos_for_actual, label, color="black", fontsize=10)
+    for (t, x, y, z), label in special_labels:
+        label_pos_for_actual = (x, y, z + (0.3 if label == "STAY2" else -0.9))
+        ax.text(*label_pos_for_actual, label, color="blue", fontsize=10, fontweight="bold")
         ax.plot([x, label_pos_for_actual[0]], [y, label_pos_for_actual[1]], [z, label_pos_for_actual[2]], "black", linestyle="dashed")
+        # special_labels に最も近い時刻での実際の位置にもラベルを付ける
+        closest_index = min(range(len(actual_t)), key=lambda i: abs(actual_t[i] - t))
+        label_pos_for_actual = (actual_x[closest_index], actual_y[closest_index], actual_z[closest_index] + (0.7 if label == "STAY2" else -0.5))
+        ax.text(*label_pos_for_actual, label, color="red", fontsize=10, fontweight="bold")
+        ax.plot([actual_x[closest_index], label_pos_for_actual[0]], [actual_y[closest_index], label_pos_for_actual[1]], [actual_z[closest_index], label_pos_for_actual[2]], "k--")
+        # special_labels に最も近い時刻での手と胸の位置にもラベルを付ける
+        closest_index = min(range(len(chest_t)), key=lambda i: abs(chest_t[i] - t))
+        label_pos_for_chest = (chest_x[closest_index], chest_y[closest_index], chest_z[closest_index] - (-0.5 if label == "STAY2" else 0.9))
+        ax.text(*label_pos_for_chest, label, color="green", fontsize=10, fontweight="bold")
+        ax.plot([chest_x[closest_index], label_pos_for_chest[0]], [chest_y[closest_index], label_pos_for_chest[1]], [chest_z[closest_index], label_pos_for_chest[2]], "k--")
+        closest_index = min(range(len(hand_t)), key=lambda i: abs(hand_t[i] - t))
+        label_pos_for_hand = (hand_x[closest_index], hand_y[closest_index], hand_z[closest_index] - (0.5 if label == "STAY2" else 0.9))
+        ax.text(*label_pos_for_hand, label, color="brown", fontsize=10, fontweight="bold")
+        ax.plot([hand_x[closest_index], label_pos_for_hand[0]], [hand_y[closest_index], label_pos_for_hand[1]], [hand_z[closest_index], label_pos_for_hand[2]], "k--")
 
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
-    ax.set_zlabel("Z")
-    ax.set_title("Actual vs Target Position with Orientation and State Labels")
-    ax.legend()
+    ax.set_xlabel("X", fontweight="bold")
+    ax.set_ylabel("Y", fontweight="bold")
+    ax.set_zlabel("Z", fontweight="bold")
+    ax.set_title("", fontweight="bold")
+    ax.legend(fontsize=12, loc='best', frameon=True, prop={'weight': 'bold'})
+    ax.tick_params(axis='both', labelsize=12, width=2)
+    for label in ax.get_xticklabels() + ax.get_yticklabels() + ax.get_zticklabels():
+        label.set_fontweight('bold')
+
+    # 目標位置と現在位置
+
+    # グラフの表示
     plt.show()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Visualize Actual and Target Positions from ROS bag, filtered by /state, with orientation arrows and state labels.")
-    parser.add_argument("bag_path", type=str, help="Path to the ROS bag file.")
-    parser.add_argument("--actual_topic", type=str, required=True, help="Topic name for actual position (PoseStamped).")
-    parser.add_argument("--target_topic", type=str, required=True, help="Topic name for target position (Pose).")
-    parser.add_argument("--state_topic", type=str, required=True, help="Topic name for state (Int32).")
-    parser.add_argument("--chest_topic", type=str, required=True, help="Topic name for chest position (PoseStamped).")
-    parser.add_argument("--hand_topic", type=str, required=True, help="Topic name for hand position (PoseStamped).")
+    bag_path = "2025-03-19-13-54-48.bag"
+    actual_topic = "/mocap_node/mocap/flapper/pose"
+    target_topic = "/approach"
+    state_topic = "/state"
+    chest_topic = "/mocap_node/mocap/chest/pose"
+    hand_topic = "/mocap_node/mocap/hand/pose"
 
     args = parser.parse_args()
-    visualize_pose_data(args.bag_path, args.actual_topic, args.target_topic, args.state_topic, args.chest_topic, args.hand_topic)
+    visualize_pose_data(bag_path, actual_topic, target_topic, state_topic, chest_topic, hand_topic)
