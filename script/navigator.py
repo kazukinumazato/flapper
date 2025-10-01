@@ -31,6 +31,7 @@ class Navigator():
         self.distance_chest_drone_on_XY_plane_pub = rospy.Publisher('distance/chest_drone_on_XY_plane', Float64)
         self.distance_chest_hand_on_XY_plane_pub = rospy.Publisher('distance/chest_hand_on_XY_plane', Float64)
         self.distance_hand_drone_on_XY_plane_pub = rospy.Publisher('distance/hand_drone_on_XY_plane', Float64)
+        self.circular_pub = rospy.Publisher('circular', Float64)
         self.running = False
         self.dist_close = dist_close
 
@@ -65,13 +66,16 @@ class Navigator():
             self.distance_chest_drone_on_XY_plane_pub.publish(Float64(distance_chest_drone_on_XY_plane))
             self.distance_chest_hand_on_XY_plane_pub.publish(Float64(distance_chest_hand_on_XY_plane))
             self.distance_hand_drone_on_XY_plane_pub.publish(Float64(distance_hand_drone_on_XY_plane))
-            height_above_hand = 0.2
+            height_above_hand = 0.3
             scale = 0.8 if distance_hand_drone_on_XY_plane > self.dist_close else 0.5
             goal_dist_z = (hand_pos.z + height_above_hand - drone_pos.z) * scale
             goal_pos_z = hand_pos.z + height_above_hand - goal_dist_z
             goal_ori = self.look_at_quaternion(drone_pos, chest_pos)
-            rospy.loginfo('goal_ori: {}'.format(goal_ori))
+            rospy.loginfo('hand_pos: {}'.format(hand_pos))
+            rospy.loginfo('chest_pos: {}'.format(chest_pos))
+            rospy.loginfo('drone_pos: {}'.format(drone_pos))
             if distance_chest_drone_on_XY_plane < distance_chest_hand_on_XY_plane:
+                self.circular_pub.publish(1)
                 rospy.loginfo('drone is running on circle.')
                 vector_c_h = np.array([hand_pos.x - chest_pos.x, hand_pos.y - chest_pos.y])
                 vector_c_d = np.array([drone_pos.x - chest_pos.x, drone_pos.y - chest_pos.y])
@@ -87,6 +91,7 @@ class Navigator():
                 self.approach_pub.publish(Pose(goal_pos, goal_ori))
                 rospy.loginfo('goal_pos: {}'.format(goal_pos))
             else:
+                self.circular_pub.publish(0)
                 if distance_chest_drone_on_XY_plane < self.deceleration_radius:
                     goal_dist_x = (hand_pos.x - drone_pos.x) * scale
                     goal_dist_y = (hand_pos.y - drone_pos.y) * scale
@@ -95,13 +100,17 @@ class Navigator():
                                        goal_pos_z)
                     self.approach_pub.publish(Pose(goal_pos, goal_ori))
                     rospy.loginfo('goal_pos: {}'.format(goal_pos))
+                    rospy.loginfo('goal_dist_y: {}'.format(goal_dist_y))
                 else:
+                    rospy.loginfo('outside of deceleration_radius')
                     vector_d_h = np.array([hand_pos.x - drone_pos.x, hand_pos.y - drone_pos.y])
                     vector_d_h_normalized = vector_d_h / np.linalg.norm(vector_d_h)
                     goal_pos = Vector3(drone_pos.x + vector_d_h_normalized[0] * self.deceleration_radius * (1 - scale),
                                        drone_pos.y + vector_d_h_normalized[1] * self.deceleration_radius * (1 - scale),
                                        goal_pos_z)
                     self.approach_pub.publish(Pose(goal_pos, goal_ori))
+                    rospy.loginfo('vector_d_h: {}'.format(vector_d_h))
+                    rospy.loginfo('vector_y: {}'.format(vector_d_h_normalized[1]))
                     rospy.loginfo('goal_pos: {}'.format(goal_pos))
             rospy.sleep(0.1)
         self.running = False
@@ -116,7 +125,6 @@ class Navigator():
         drone_ori = self.drone_pose.orientation
         current_theta = R.from_quat([drone_ori.x, drone_ori.y, drone_ori.z, drone_ori.w]).as_euler('xyz')[2]
         goal_theta = (chest_theta - current_theta) * theta_scale + current_theta
-        rospy.loginfo('chest_theta: {}, current_theta: {}, goal_theta: {}, difference: {}'.format(np.rad2deg(chest_theta), np.rad2deg(current_theta), np.rad2deg(goal_theta), np.rad2deg(chest_theta - current_theta)))
         quaternion = R.from_euler('xyz', [0, 0, goal_theta]).as_quat()
         quaternion = Quaternion(quaternion[0], quaternion[1], quaternion[2], quaternion[3])
         return quaternion  

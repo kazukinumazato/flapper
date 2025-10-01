@@ -34,18 +34,21 @@ class MotionManager():
         self.drone_client.takeoff(height, duration)
         self.robot_state = RobotState.TAKEOFF
         self.state_pub.publish(RobotState.TAKEOFF)
-        start_t = rospy.get_time()
-        while rospy.get_time() <= start_t + timeout:
-            rospy.sleep(0.1)
-            if abs(self.drone_pose.position.z - height) <= threshold:
-                rospy.sleep(2)
-                rospy.loginfo('takeoff succeeded')
-                self.robot_state = RobotState.HOVER
-                self.state_pub.publish(RobotState.HOVER)
-                break
-            if rospy.is_shutdown():
-                print('rospy shutdown')
-                break
+        rospy.sleep(5)
+        self.robot_state = RobotState.HOVER
+        self.state_pub.publish(RobotState.HOVER)
+        # start_t = rospy.get_time()
+        # while rospy.get_time() <= start_t + timeout:
+        #     rospy.sleep(0.1)
+        #     if abs(self.drone_pose.position.z - height) <= threshold:
+        #         rospy.sleep(2)
+        #         rospy.loginfo('takeoff succeeded')
+        #         self.robot_state = RobotState.HOVER
+        #         self.state_pub.publish(RobotState.HOVER)
+        #         break
+        #     if rospy.is_shutdown():
+        #         print('rospy shutdown')
+        #         break
 
     def land(self, duration = 3):
         if self.robot_state == RobotState.START or self.robot_state == RobotState.STOP:

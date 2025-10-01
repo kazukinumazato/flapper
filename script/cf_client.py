@@ -82,11 +82,14 @@ class CfClient():
         self.cf.param.set_value('stabilizer.controller', '1')
 
     def tune_pid_gains(self):
-        self.cf.param.set_value('posCtlPid.xKp', 1.0)
-        self.cf.param.set_value('posCtlPid.yKp', 1.0)
+        self.cf.param.set_value('posCtlPid.xKp', 2.0)
+        self.cf.param.set_value('posCtlPid.yKp', 2.0)
         self.cf.param.set_value('posCtlPid.xKd', 0.1)
         self.cf.param.set_value('posCtlPid.yKd', 0.1)
-        self.cf.param.set_value('pid_attitude.pitch_kp', 52.0)
+        self.cf.param.set_value('pid_attitude.roll_kp', 15)
+        self.cf.param.set_value('pid_attitude.pitch_kp', 19)
+        self.cf.param.set_value('pid_attitude.yaw_kp', 12)
+        
 
     def mocap_sub_callback(self, msg):
         self.send_pose(msg.pose.position, msg.pose.orientation)
