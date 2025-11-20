@@ -71,7 +71,7 @@ class MotionManager():
             rospy.logwarn('The robot is not ready to approach. Unable to approach.')
             return
         rospy.loginfo('approaching target position: x: %f, y: %f, z: %f' % (x, y, z))
-        self.drone_client.go_to(x, y, z, yaw, duration_s, relative)
+        self.drone_client.go_to(x, y, z, 0, duration_s, relative)
         self.robot_state = RobotState.APPROACH
         self.state_pub.publish(RobotState.APPROACH)
 
