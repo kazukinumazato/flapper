@@ -29,14 +29,14 @@ class Final3DSim:
         if self.phase == 'preparing':
             safe_z = 3.0
             safe_r = r_curr + 0.1
-            if abs(self.drone_pos[2] - safe_z) < 0.5 and dist_d >= safe_r - 0.2:
+            if self.drone_pos[2] - safe_z < 0.3 and dist_d >= safe_r - 0.2:
                 self.phase = 'leading'
         
         if self.phase == 'leading':
             if dist_d < r_curr + 0.1:
                 self.phase = 'circling'
         
-        if self.phase == 'circling':
+        if self.phase == 'circling' or self.phase == 'leading':
             dist_to_hand_xy = np.linalg.norm(self.drone_pos[:2] - self.hand_pos[:2])
             dist_to_hand_z = abs(self.drone_pos[2] - (self.hand_pos[2] + 0.3))
             if dist_to_hand_xy < 0.15 and dist_to_hand_z < 0.1:
