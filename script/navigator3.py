@@ -129,7 +129,7 @@ class Navigator():
                 if dist_c_d < r_curr + 0.1:
                     self.phase = 'circling'
             
-            if self.phase == 'circling':
+            if self.phase == 'circling' or self.phase == 'leading':
                 if dist_h_d < 0.15 and dist_to_hand_z < 0.1:
                     self.phase = 'docked'
 
