@@ -122,7 +122,7 @@ class Navigator():
                     rospy.loginfo("Reached takeoff station point. Switching to preparing phase.")
             
             if self.phase == 'preparing':
-                if abs(self.drone_p[2] - 3.0) < 0.3 and dist_c_d >= (r_curr - 0.1):
+                if self.drone_p[2] - 3.0 < 0.3 and dist_c_d >= (r_curr - 0.1):
                     self.phase = 'leading'
             
             if self.phase == 'leading':

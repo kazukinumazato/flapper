@@ -30,6 +30,7 @@ class Navigator():
         self.distance_chest_drone_on_XY_plane_pub = rospy.Publisher('distance/chest_drone_on_XY_plane', Float64)
         self.distance_chest_hand_on_XY_plane_pub = rospy.Publisher('distance/chest_hand_on_XY_plane', Float64)
         self.distance_hand_drone_on_XY_plane_pub = rospy.Publisher('distance/hand_drone_on_XY_plane', Float64)
+
         self.circular_pub = rospy.Publisher('circular', Float64) # 円周運動フラグ
 
         # --- 制御パラメータの設定 ---
@@ -37,7 +38,7 @@ class Navigator():
         self.dist_close = dist_close                   # 「至近距離」と見なす閾値
         self.running = False                           # 制御実行フラグ
 
-    # --- 各サブスクライバーのコールバック関数 ---
+    # --- callback functions ---
     def drone_pose_sub_callback(self, msg):
         self.drone_pose = msg.pose
 
