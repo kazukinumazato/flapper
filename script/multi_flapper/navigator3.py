@@ -38,6 +38,11 @@ class NavigatorDual():
         self.other_drone_p = None
         self.chest_p = None
         self.hand_p = None
+        
+        # --- 定点待機位置の設定 ---
+        self.takeoff_x = 0.5  # 待機場所のX
+        self.takeoff_y = (self.drone_id*2-3)  # 待機場所のY
+        self.takeoff_z = 2.3  # 待機場所のZ（離陸直後の高度）
 
     def drone_cb(self, msg):
         self.drone_p = np.array([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z])
@@ -72,8 +77,15 @@ class NavigatorDual():
             dist_h_d = np.linalg.norm(self.drone_p[:2] - self.hand_p[:2])
             dist_to_hand_z = abs(self.drone_p[2] - (self.hand_p[2] + 0.3))
 
-            # --- フェーズ遷移 (test6.py 準拠) ---
-            if self.phase == 'preparing':
+            # --- フェーズ遷移 ---
+
+            if self.phase == 'takeoff_hover':
+                # 指定した定点(3次元)との距離を計算
+                dist_to_takeoff = np.linalg.norm(self.drone_p - np.array([self.takeoff_x, self.takeoff_y, self.takeoff_z]))
+                if dist_to_takeoff < 0.2: # 20cm以内に近づいたら次へ
+                    self.phase = 'preparing'
+                    rospy.loginfo("Reached takeoff station point. Switching to preparing phase.")
+            elif self.phase == 'preparing':
                 if self.drone_p[2] > 2.7 and dist_c_d >= r_curr - 0.1:
                     self.phase = 'leading'
             elif self.phase == 'leading':
@@ -88,7 +100,11 @@ class NavigatorDual():
             v_move = np.array([0.0, 0.0])
             goal_z = self.drone_p[2]
 
-            if self.phase == 'preparing':
+            if self.phase == 'takeoff_hover':
+                # 定点を目指す移動
+                v_move = np.array([self.takeoff_x, self.takeoff_y]) - self.drone_p[:2]
+                goal_z = self.takeoff_z
+            elif self.phase == 'preparing':
                 v_c_d = self.drone_p[:2] - self.chest_p[:2]
                 target_r_pos = (v_c_d / (dist_c_d + 1e-5)) * (r_curr + 0.5)
                 v_move = target_r_pos - v_c_d
@@ -116,13 +132,13 @@ class NavigatorDual():
             # --- 【test6コアロジック】衝突回避 ---
             dist_between = np.linalg.norm(self.drone_p[:2] - self.other_drone_p[:2])
             # ドッキング中は反発を弱める
-            repulsion_weight = 0.15 if self.phase != 'docked' else 0.02
+            repulsion_weight = 0.80 if self.phase != 'docked' else 0.02
             # 手の近くでは回避より目標優先
             repulsion_influence = 1.0 if dist_h_d > 0.2 else 0.0
 
-            if dist_between < 0.7:
+            if dist_between < 1.0:
                 repulsion_vec = (self.drone_p[:2] - self.other_drone_p[:2]) / (dist_between + 1e-5)
-                strength = np.clip((0.7 - dist_between) / 0.7, 0, 1)
+                strength = np.clip((1.0 - dist_between) / 1.0, 0, 1)
                 v_move += repulsion_vec * strength * repulsion_weight * repulsion_influence
 
             # 移動量の制限

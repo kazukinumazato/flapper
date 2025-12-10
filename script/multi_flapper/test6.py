@@ -56,12 +56,12 @@ class DroneAgent:
 
         # 衝突回避ロジック
         dist_between = np.linalg.norm(self.pos[:2] - other_drone_pos[:2])
-        repulsion_weight = 0.15 if self.phase != 'docked' else 0.02
+        repulsion_weight = 0.80 if self.phase != 'docked' else 0.02
         repulsion_influence = 1.0 if np.linalg.norm(self.target_hand[:2] - self.pos[:2]) > 0.2 else 0.0
 
-        if dist_between < 0.7:
+        if dist_between < 1.0:
             repulsion_vec = (self.pos[:2] - other_drone_pos[:2]) / (dist_between + 1e-5)
-            strength = np.clip((0.7 - dist_between) / 0.7, 0, 1)
+            strength = np.clip((1.0 - dist_between) / 1.0, 0, 1)
             v_move += repulsion_vec * strength * repulsion_weight * repulsion_influence
 
         move_norm = np.linalg.norm(v_move)
@@ -81,7 +81,7 @@ class SwarmSimulator:
         self.hand_l = np.array([-0.8, 0.5, 1.0])
         self.hand_r = np.array([0.8, 0.5, 1.0])
         self.drone_l = DroneAgent(0, 'left', [3.0, -1.0, 2.0], self.hand_l)
-        self.drone_r = DroneAgent(1, 'right', [2.8, -1.0, 2.0], self.hand_r)
+        self.drone_r = DroneAgent(1, 'right', [4.0, 1.0, 2.0], self.hand_r)
         self.r_min, self.r_max, self.eye_h = 0.8, 1.5, 1.6
 
     def get_radius(self, z):
