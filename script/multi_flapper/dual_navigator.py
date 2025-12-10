@@ -39,10 +39,10 @@ class NavigatorDual:
         )
 
         # キャッシュ
-        self.drone_p = None
-        self.other_drone_p = None
-        self.chest_p = None
-        self.hand_p = None
+        self.drone_p = np.array([0.0, 0.0, 0.0])
+        self.other_drone_p = np.array([0.0, 0.0, 0.0])
+        self.chest_p = np.array([0.0, 0.0, 0.0])
+        self.hand_p = np.array([0.0, 0.0, 0.0])
 
         # --- 定点待機位置の設定 ---
         self.takeoff_x = 0.5  # 待機場所のX
@@ -132,7 +132,8 @@ class NavigatorDual:
 
             if self.phase == "takeoff_hover":
                 # 定点を目指す移動
-                v_move = np.array([self.takeoff_x, self.takeoff_y]) - self.drone_p[:2]
+                # v_move = np.array([self.takeoff_x, self.takeoff_y]) - self.drone_p[:2]
+                v_move = np.array([0, 0])  # 定点ホバリング中はXY移動なし
                 goal_z = self.takeoff_z
             elif self.phase == "preparing":
                 v_c_d = self.drone_p[:2] - self.chest_p[:2]
