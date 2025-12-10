@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 import rospy
-from cf_client2 import CfClient
+
+# from cf_client2 import CfClient                 # <- オリジナルをコメントアウト
+from mock_cf_client import (
+    MockCfClient as CfClient,
+)  # <- モッククライアントをインポートして置き換え
 from teleop2 import Teleop
 from cf_logger2 import CfLogger
 from cflib.utils import uri_helper
