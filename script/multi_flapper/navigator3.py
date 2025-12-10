@@ -41,7 +41,7 @@ class NavigatorDual():
         
         # --- 定点待機位置の設定 ---
         self.takeoff_x = 0.5  # 待機場所のX
-        self.takeoff_y = (self.drone_id*2-3)  # 待機場所のY
+        self.takeoff_y = (self.my_id*2-3)*1.5  # 待機場所のY
         self.takeoff_z = 2.3  # 待機場所のZ（離陸直後の高度）
 
     def drone_cb(self, msg):
