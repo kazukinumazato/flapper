@@ -24,14 +24,6 @@ class Navigator:
         self.phase = "takeoff_hover"  # 最初のフェーズ
         self.running = False
 
-        # ドッキング用タイマー: 手の上に留まっている時間判定
-        self.dock_start_time = None
-        self.dock_hold_time = 2.0  # 秒（必要なら変更）
-
-        # ドッキング用: ホールド時の手の初期位置と許容移動量
-        self.dock_hand_start_pos = None
-        self.dock_hand_move_thresh = 0.3  # m (30 cm)
-
         # --- Subscribers ---
         # ドローン、胸、手の位置姿勢(MoCapデータ)を取得
         self.drone_pose_sub = rospy.Subscriber(
@@ -169,38 +161,9 @@ class Navigator:
                 if dist_c_d < r_curr + 0.1:
                     self.phase = "circling"
 
-            # 時間ベースのドッキング判定（手の上に一定時間留まったら docked）
             if self.phase == "circling" or self.phase == "leading":
                 if dist_h_d < 0.15 and dist_to_hand_z < 0.1:
-                    now = rospy.get_time()
-                    if self.dock_start_time is None:
-                        # 条件を満たし始めた時刻を記録し、手の初期位置を保持
-                        self.dock_start_time = now
-                        self.dock_hand_start_pos = self.hand_p.copy()
-                    else:
-                        # 手が動きすぎていないかチェック
-                        if self.dock_hand_start_pos is not None:
-                            hand_movement = np.linalg.norm(self.hand_p - self.dock_hand_start_pos)
-                        else:
-                            hand_movement = 0.0
-
-                        if hand_movement > self.dock_hand_move_thresh:
-                            # 手が動きすぎた -> カウントリセット
-                            rospy.loginfo("Docking cancelled: hand moved %.3f m (> %.3f m)" % (hand_movement, self.dock_hand_move_thresh))
-                            self.dock_start_time = None
-                            self.dock_hand_start_pos = None
-                        else:
-                            # 一定時間維持できたら docked に遷移
-                            if now - self.dock_start_time >= self.dock_hold_time:
-                                self.phase = "docked"
-                                rospy.loginfo("Docked: held over hand for %.2f s" % self.dock_hold_time)
-                                # 成功時はタイマーと保持位置をクリアしておく
-                                self.dock_start_time = None
-                                self.dock_hand_start_pos = None
-                else:
-                    # 条件を満たさなくなったらタイマーと位置をリセット
-                    self.dock_start_time = None
-                    self.dock_hand_start_pos = None
+                    self.phase = "docked"
 
             # --- 移動制御ベクトル計算 ---
             v_move = np.array([0.0, 0.0])
