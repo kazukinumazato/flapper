@@ -95,7 +95,7 @@ class CfLogger:
                 "log/gyro/omega",
                 [
                     ["gyro.x", "float", "x"],
-                    a["gyro.y", "float", "y"],
+                    ["gyro.y", "float", "y"],
                     ["gyro.z", "float", "z"],
                 ],
             ),

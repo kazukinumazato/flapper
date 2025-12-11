@@ -22,8 +22,8 @@ class Teleop():
         self.palm_land_sub = rospy.Subscriber('/teleop_command/palm_land', Pose, self.palm_land_sub_callback)
         
         # 個別アプローチ指令の購読（Navigator1, Navigator2がパブリッシュ）
-        self.approach_sub1 = rospy.Subscriber('/approach1', Pose, self.approach_sub_callback1)
-        self.approach_sub2 = rospy.Subscriber('/approach2', Pose, self.approach_sub_callback2)
+        self.approach_sub1 = rospy.Subscriber('/flapper1/cmd_pose', Pose, self.approach_sub_callback1)
+        self.approach_sub2 = rospy.Subscriber('/flapper2/cmd_pose', Pose, self.approach_sub_callback2)
 
 
     def takeoff_sub_callback(self, msg):

@@ -16,7 +16,7 @@ class MultiFlapper:
         
         self.palm_land_pub = rospy.Publisher('/teleop_command/palm_land', Pose)
 
-        self.state = RobotState.START
+        self.state1 = RobotState.START
         self.state2 = RobotState.START
 
 # --- コールバック ---

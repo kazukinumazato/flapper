@@ -74,8 +74,8 @@ class CfSimulator:
         diff = self.target_pos - self.current_pos
         distance = np.linalg.norm(diff)
 
-        # 速度制限 (Max 1 m/s)
-        max_speed = 1.0
+        # 速度制限
+        max_speed = 3.0 # m/s
 
         if distance > 0.001:
             # 速度 v = 距離 / 予測移動時間 (durationはMockCfClientが無視したので、ここでは固定速度)
@@ -114,9 +114,9 @@ def cf_simulator_main():
     rospy.init_node("cf_simulator_node")
 
     # 1号機シミュレーター (初期位置: X=0.0, Y=0.0, Z=0.0)
-    CfSimulator(drone_id=1, initial_pos=np.array([0.0, 0.0, 0.0]))
+    CfSimulator(drone_id=1, initial_pos=np.array([2.0, 2.0, 0.0]))
     # 2号機シミュレーター (初期位置: X=0.5, Y=0.0, Z=0.0)
-    CfSimulator(drone_id=2, initial_pos=np.array([0.5, 0.0, 0.0]))
+    CfSimulator(drone_id=2, initial_pos=np.array([2.0, -2.0, 0.0]))
 
     rospy.spin()
 

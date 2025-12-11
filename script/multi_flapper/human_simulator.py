@@ -22,10 +22,10 @@ class HumanSimulator:
         # チェスト (胸: 固定位置)
         self.chest_pose = Pose(Vector3(1.0, 0.0, 1.3), Quaternion(0, 0, 0, 1))
         # ハンド1 (右手: CF1の目標)
-        self.hand1_pos = np.array([1.5, -0.5, 1.0])
+        self.hand1_pos = np.array([-0.8, 0.5, 1.0])
         self.hand1_ori = Quaternion(0, 0, 0, 1)
         # ハンド2 (左手: CF2の目標)
-        self.hand2_pos = np.array([1.5, 0.5, 1.0])
+        self.hand2_pos = np.array([0.8, 0.5, 1.0])
         self.hand2_ori = Quaternion(0, 0, 0, 1)
 
         # --- 更新タイマー (30HzでMoCapデータをパブリッシュ) ---
