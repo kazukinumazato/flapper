@@ -211,7 +211,7 @@ def main():
     sis.start()
     outcome = sm.execute()
     if outcome == 'failure':
-            flapper.stop()
+            flapper.land()
     rospy.spin()    
     sis.stop()
 

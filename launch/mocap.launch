@@ -9,7 +9,7 @@
     launch-prefix="">
     <rosparam subst_value="true">
       rigid_bodies:
-         '1':
+         '4':
                pose: mocap/flapper/pose
                pose2d: mocap/flapper/ground_pose
                child_frame_id: baselink

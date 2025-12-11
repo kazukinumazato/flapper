@@ -3,12 +3,12 @@
 import rospy
 import numpy as np
 from geometry_msgs.msg import Vector3, Pose, PoseStamped, Quaternion
-from std_msgs.msg import Empty, Float64, String
+from std_msgs.msg import Empty, Float64, String, Int64
 from scipy.spatial.transform import Rotation as R
 
 
 class Navigator:
-    def __init__(self, theta_scale=0.1, r_min=0.8, r_max=2.5, eye_h=1.5):
+    def __init__(self, theta_scale=0.1, r_min=0.7, r_max=1.5, eye_h=1.5):
         # 軌道設計パラメータ
         self.theta_scale = theta_scale
         self.r_min = r_min
@@ -48,7 +48,8 @@ class Navigator:
         self.approach_start_sub = rospy.Subscriber(
             "approach_start", Empty, self.start_cb
         )
-        self.approach_stop_sub = rospy.Subscriber("approach_stop", Empty, self.stop_cb)
+        self.approach_stop_sub = rospy.Subscriber(
+            "approach_stop", Empty, self.stop_cb)
 
         # --- Publishers ---
         self.approach_pub = rospy.Publisher("approach", Pose, queue_size=1)
@@ -62,7 +63,8 @@ class Navigator:
             "distance/hand_drone_on_XY_plane", Float64, queue_size=1
         )
 
-        self.phase_pub = rospy.Publisher("navigator/phase", String, queue_size=1)
+        self.phase_pub = rospy.Publisher(
+            "navigator/phase", Int64, queue_size=1)
         self.ps_radius_pub = rospy.Publisher(
             "navigator/ps_radius", Float64, queue_size=1
         )
@@ -146,7 +148,19 @@ class Navigator:
             self.distance_chest_hand_on_XY_plane_pub.publish(dist_c_h)
             self.distance_hand_drone_on_XY_plane_pub.publish(dist_h_d)
             self.ps_radius_pub.publish(r_curr)
-            self.phase_pub.publish(self.phase)
+            # self.phase_pub.publish(self.phase)
+            phase_num = 0
+            if self.phase == "takeoff_hover":
+                phase_num = 1
+            elif self.phase == "preparing":
+                phase_num = 2
+            elif self.phase == "leading":
+                phase_num = 3
+            elif self.phase == "circling":
+                phase_num = 4
+            elif self.phase == "docked":
+                phase_num = 5
+            self.phase_pub.publish(phase_num)
 
             # --- フェーズ遷移ロジック ---
             if self.phase == "takeoff_hover":
@@ -180,20 +194,23 @@ class Navigator:
                     else:
                         # 手が動きすぎていないかチェック
                         if self.dock_hand_start_pos is not None:
-                            hand_movement = np.linalg.norm(self.hand_p - self.dock_hand_start_pos)
+                            hand_movement = np.linalg.norm(
+                                self.hand_p - self.dock_hand_start_pos)
                         else:
                             hand_movement = 0.0
 
                         if hand_movement > self.dock_hand_move_thresh:
                             # 手が動きすぎた -> カウントリセット
-                            rospy.loginfo("Docking cancelled: hand moved %.3f m (> %.3f m)" % (hand_movement, self.dock_hand_move_thresh))
+                            rospy.loginfo("Docking cancelled: hand moved %.3f m (> %.3f m)" % (
+                                hand_movement, self.dock_hand_move_thresh))
                             self.dock_start_time = None
                             self.dock_hand_start_pos = None
                         else:
                             # 一定時間維持できたら docked に遷移
                             if now - self.dock_start_time >= self.dock_hold_time:
                                 self.phase = "docked"
-                                rospy.loginfo("Docked: held over hand for %.2f s" % self.dock_hold_time)
+                                rospy.loginfo(
+                                    "Docked: held over hand for %.2f s" % self.dock_hold_time)
                                 # 成功時はタイマーと保持位置をクリアしておく
                                 self.dock_start_time = None
                                 self.dock_hand_start_pos = None
@@ -205,9 +222,9 @@ class Navigator:
             # --- 移動制御ベクトル計算 ---
             v_move = np.array([0.0, 0.0])
             goal_z = self.drone_p[2]
-            
+
             if dist_c_h < 0.5:
-                v_move=np.array([0.0, 0.0])  # 手に近い場合はXY移動なし
+                v_move = np.array([0.0, 0.0])  # 手に近い場合はXY移動なし
             else:
 
                 if self.phase == "takeoff_hover":
@@ -222,18 +239,20 @@ class Navigator:
 
                 elif self.phase == "preparing":
                     v_c_d_vec = self.drone_p[:2] - self.chest_p[:2]
-                    target_r_pos = (v_c_d_vec / (dist_c_d + 1e-5)) * (r_curr + 0.5)
+                    target_r_pos = (
+                        v_c_d_vec / (dist_c_d + 1e-5)) * (r_curr + 0.5)
                     v_move = target_r_pos - v_c_d_vec
                     goal_z = 3.0
 
                 elif self.phase == "leading":
                     v_move = self.hand_p[:2] - self.drone_p[:2]
-                    goal_z = self.hand_p[2] + 0.3
+                    goal_z = (self.drone_p[2] * 9.0 + self.hand_p[2] + 0.15) / 10.0
+                    v_move *= 20  # 少し強めに引っ張るように調整
 
                 elif self.phase == "circling":
-                    goal_z = self.hand_p[2] + 0.3
+                    goal_z = self.hand_p[2] + 0.15
                     attraction = np.clip(dist_h_d / 0.5, 0.2, 1.0)
-                    theta_rot = 0.08
+                    theta_rot = 0.1
                     rot_mat = np.array(
                         [
                             [np.cos(theta_rot), -np.sin(theta_rot)],
@@ -242,14 +261,17 @@ class Navigator:
                     )
                     v_c_d_vec = self.drone_p[:2] - self.chest_p[:2]
                     r_target = dist_c_h
-                    r_next = max(dist_c_d + (r_target - dist_c_d) * 0.1, r_curr + 0.05)
+                    r_next = max(dist_c_d + (r_target - dist_c_d)
+                                 * 0.1, r_curr + 0.05)
                     v_next_pos = (rot_mat @ (v_c_d_vec / dist_c_d)) * r_next
                     v_move = (
                         (self.chest_p[:2] + v_next_pos) - self.drone_p[:2]
                     ) * attraction
                     if dist_h_d < 0.5:
-                        v_pull = (self.hand_p[:2] - self.drone_p[:2]) * (1.0 - attraction)
+                        v_pull = (
+                            self.hand_p[:2] - self.drone_p[:2]) * (1.0 - attraction)
                         v_move += v_pull
+                    v_move *= 200  # 少し強めに回るように調整
                 else:  # docked
                     v_move = np.array([0.0, 0.0])
                     goal_z = self.hand_p[2] + 0.3
@@ -260,10 +282,12 @@ class Navigator:
                     v_move = (v_move / move_norm) * 0.1
 
                 goal_pos = Vector3(
-                    self.drone_p[0] + v_move[0], self.drone_p[1] + v_move[1], goal_z
+                    self.drone_p[0] +
+                    v_move[0], self.drone_p[1] + v_move[1], goal_z
                 )
 
-                self.approach_pub.publish(Pose(goal_pos, self.look_at_quaternion()))
+                self.approach_pub.publish(
+                    Pose(goal_pos, self.look_at_quaternion()))
                 rate.sleep()
 
         self.running = False
