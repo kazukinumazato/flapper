@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import rospy
-from cf_client2 import CfClient
-from teleop2 import Teleop
-from cf_logger2 import CfLogger
+from script.multi_flapper.cf_client_unique import CfClient
+from script.multi_flapper.teleop_dual import Teleop
+from script.multi_flapper.cf_logger_unique import CfLogger
 from cflib.utils import uri_helper
-from motion_manager2 import MotionManager
+from script.multi_flapper.motion_manager_unique import MotionManager
 import traceback
 
 uri1 = uri_helper.uri_from_env(default="radio://0/80/2M/E7E7E7E7E7")

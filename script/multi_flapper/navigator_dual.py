@@ -3,7 +3,7 @@
 import rospy
 import numpy as np
 from geometry_msgs.msg import Vector3, Pose, PoseStamped, Quaternion
-from std_msgs.msg import Empty, Float64, String
+from std_msgs.msg import Empty, Float64, String, Int64
 from scipy.spatial.transform import Rotation as R
 import threading
 
@@ -12,7 +12,7 @@ class NavigatorDual:
     def __init__(self, my_id, other_id, theta_scale=0.1):
         # パラメータ
         self.my_id = my_id
-        self.r_min, self.r_max, self.eye_h = 0.8, 1.5, 1.6
+        self.r_min, self.r_max, self.eye_h = 0.7, 1.5, 1.6
         self.theta_scale = theta_scale
 
         # 状態管理
@@ -21,12 +21,18 @@ class NavigatorDual:
 
         # --- Subscribers ---
         # 自身の位置・胸の位置・自身が担当する手の位置
-        rospy.Subscriber(f"mocap_node/mocap/flapper{my_id}/pose", PoseStamped, self.drone_cb)
-        rospy.Subscriber("mocap_node/mocap/chest/pose", PoseStamped, self.chest_cb)
-        rospy.Subscriber(f"mocap_node/mocap/hand{my_id}/pose", PoseStamped, self.hand_cb)
+        rospy.Subscriber(
+            f"mocap_node/mocap/flapper{my_id}/pose", PoseStamped, self.drone_cb)
+        rospy.Subscriber("mocap_node/mocap/chest/pose",
+                         PoseStamped, self.chest_cb)
+        rospy.Subscriber(
+            f"mocap_node/mocap/hand{my_id}/pose", PoseStamped, self.hand_cb)
 
-        # 【重要】相手ドローンの位置を購読 (衝突回避用)
-        rospy.Subscriber(f"mocap_node/mocap/flapper{other_id}/pose", PoseStamped, self.other_drone_cb)
+        # 【重要】相手ドローンと手の位置を購読 (衝突回避用)
+        rospy.Subscriber(
+            f"mocap_node/mocap/flapper{other_id}/pose", PoseStamped, self.other_drone_cb)
+        rospy.Subscriber(
+            f"mocap_node/mocap/hand{other_id}/pose", PoseStamped, self.other_hand_cb)
 
         # 制御コマンド
         rospy.Subscriber("approach_start", Empty, self.start_cb)
@@ -36,7 +42,7 @@ class NavigatorDual:
             f"flapper{my_id}/cmd_pose", Pose, queue_size=1
         )
         self.phase_pub = rospy.Publisher(
-            f"navigator{my_id}/phase", String, queue_size=1
+            f"navigator{my_id}/phase", Int64, queue_size=1
         )
 
         # キャッシュ
@@ -58,6 +64,11 @@ class NavigatorDual:
 
     def other_drone_cb(self, msg):
         self.other_drone_p = np.array(
+            [msg.pose.position.x, msg.pose.position.y, msg.pose.position.z]
+        )
+
+    def other_hand_cb(self, msg):
+        self.other_hand_p = np.array(
             [msg.pose.position.x, msg.pose.position.y, msg.pose.position.z]
         )
 
@@ -90,6 +101,7 @@ class NavigatorDual:
         rate = rospy.Rate(20)
 
         while not rospy.is_shutdown() and self.running:
+            # Note: 初期データチェックは、現在のNumPy配列初期化ではp is None判定は効かないが、今回はこのまま維持する
             if any(
                 p is None
                 for p in [self.drone_p, self.other_drone_p, self.chest_p, self.hand_p]
@@ -103,6 +115,9 @@ class NavigatorDual:
             # --- 距離計算(xy平面) ---
             dist_c_d = np.linalg.norm(self.drone_p[:2] - self.chest_p[:2])
             dist_h_d = np.linalg.norm(self.drone_p[:2] - self.hand_p[:2])
+            dist_c_h = np.linalg.norm(self.chest_p[:2] - self.hand_p[:2])
+            dist_h1_h2 = np.linalg.norm(
+                self.hand_p[:2] - self.other_hand_p[:2])
             # --- z軸距離計算 ---
             dist_to_hand_z = abs(self.drone_p[2] - (self.hand_p[2] + 0.3))
 
@@ -111,17 +126,22 @@ class NavigatorDual:
             #                                            ->ドッキング
             if self.phase == "takeoff_hover":
                 # 指定した定点(3次元)との距離を計算
+                # ユーザーの意図に基づき、現在位置のXY座標をキープし、Z=takeoff_zを目指す
                 dist_to_takeoff = np.linalg.norm(
                     self.drone_p
-                    - np.array([self.takeoff_x, self.takeoff_y, self.takeoff_z])
+                    - np.array([self.drone_p[0],
+                               self.drone_p[1], self.takeoff_z])
                 )
-                rospy.loginfo(f"Distance to takeoff point: {dist_to_takeoff:.2f} m")
-                rospy.loginfo(f'goal position: ({self.takeoff_x}, {self.takeoff_y}, {self.takeoff_z})')
-                rospy.loginfo(f'current position: ({self.drone_p[0]}, {self.drone_p[1]}, {self.drone_p[2]})')
-                if dist_to_takeoff < 0.2:  # 20cm以内に近づいたら次へ
+                rospy.loginfo(
+                    f"Distance to takeoff Z: {abs(self.drone_p[2] - self.takeoff_z):.2f} m")
+                rospy.loginfo(
+                    f'goal position: ({self.drone_p[0]:.2f}, {self.drone_p[1]:.2f}, {self.takeoff_z})')
+                rospy.loginfo(
+                    f'current position: ({self.drone_p[0]:.2f}, {self.drone_p[1]:.2f}, {self.drone_p[2]:.2f})')
+                if abs(self.drone_p[2] - self.takeoff_z) < 0.2:  # Z軸の差が20cm以内なら次へ
                     self.phase = "preparing"
                     rospy.loginfo(
-                        "Reached to beginning position. Switching to preparing phase."
+                        "Reached to beginning height. Switching to preparing phase."
                     )
             elif self.phase == "preparing":
                 if self.drone_p[2] > 2.7 and dist_c_d >= r_curr - 0.1:
@@ -141,49 +161,62 @@ class NavigatorDual:
             v_move = np.array([0.0, 0.0])
             goal_z = self.drone_p[2]
 
+            phase_num = 0
             if self.phase == "takeoff_hover":
-                # 定点を目指す移動
-                # v_move = np.array([self.takeoff_x, self.takeoff_y]) - self.drone_p[:2]
-                self.takeoff_x=self.drone_p[0]  # Xは現在位置をキープ
-                self.takeoff_y=self.drone_p[1]  # Yは現在位置をキープ
-                v_move = np.array([0.0, 0.0])  # 定点ホバリング中はXY移動なし
-                goal_z = self.takeoff_z
-                # rospy.loginfo("Taking off and hovering at the starting position.")
+                phase_num = 1
             elif self.phase == "preparing":
-                v_c_d = self.drone_p[:2] - self.chest_p[:2]
-                target_r_pos = (v_c_d / (dist_c_d + 1e-5)) * (r_curr + 0.5)
-                v_move = target_r_pos - v_c_d
-                goal_z = 3.0
+                phase_num = 2
             elif self.phase == "leading":
-                v_move = self.hand_p[:2] - self.drone_p[:2]
-                goal_z = self.hand_p[2] + 0.3
-                v_move*=500 # leading速度
+                phase_num = 3
             elif self.phase == "circling":
-                # 回転軌道計算
-                theta = 0.08
-                rot_mat = np.array(
-                    [[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]]
-                )
-                v_c_d = self.drone_p[:2] - self.chest_p[:2]
-                r_target = np.linalg.norm(self.hand_p[:2] - self.chest_p[:2])
-                r_next = max(dist_c_d + (r_target - dist_c_d) * 0.1, r_curr + 0.05)
-                v_next_pos = (rot_mat @ (v_c_d / dist_c_d)) * r_next
-                v_move = (self.chest_p[:2] + v_next_pos) - self.drone_p[:2]
-                # 手への引き込み
-                if dist_h_d < 0.5:
-                    v_move += (self.hand_p[:2] - self.drone_p[:2]) * 0.3
-                goal_z = self.hand_p[2] + 0.3
-
-                v_move*=1000 # circling速度
+                phase_num = 4
             elif self.phase == "docked":
-                v_move = self.hand_p[:2] - self.drone_p[:2]
-                goal_z = self.hand_p[2] + 0.3
-                v_move*=1000 # docked速度
-            else:
-                rospy.logwarn(f"Unknown phase: {self.phase}")
+                phase_num = 5
 
-            # --- 【test6コアロジック】衝突回避 ---
-            dist_between = np.linalg.norm(self.drone_p[:2] - self.other_drone_p[:2])
+            if dist_c_h < 0.5 or dist_h1_h2 < 0.5:  # 手同士や胸と手が近すぎる場合は移動しない
+                v_move = np.array([0.0, 0.0])
+                self.phase_pub.publish(-phase_num)
+            else:
+                if self.phase == "takeoff_hover":
+                    # 定点ホバリング中はXY移動なし、Z軸のみ上昇
+                    v_move = np.array([0.0, 0.0])
+                    goal_z = self.takeoff_z
+                elif self.phase == "preparing":
+                    v_c_d = self.drone_p[:2] - self.chest_p[:2]
+                    target_r_pos = (v_c_d / (dist_c_d + 1e-5)) * (r_curr + 0.5)
+                    v_move = target_r_pos - v_c_d
+                    goal_z = 3.0
+                elif self.phase == "leading":
+                    v_move = self.hand_p[:2] - self.drone_p[:2]
+                    # 手の高さに徐々に近づける
+                    goal_z = (self.drone_p[2]*8+(self.hand_p[2] + 0.3)*2)/10
+                elif self.phase == "circling":
+                    # 回転軌道計算
+                    theta = 0.08
+                    rot_mat = np.array(
+                        [[np.cos(theta), -np.sin(theta)],
+                         [np.sin(theta), np.cos(theta)]]
+                    )
+                    v_c_d = self.drone_p[:2] - self.chest_p[:2]
+                    r_target = np.linalg.norm(
+                        self.hand_p[:2] - self.chest_p[:2])
+                    r_next = max(dist_c_d + (r_target - dist_c_d)
+                                 * 0.1, r_curr + 0.05)
+                    v_next_pos = (rot_mat @ (v_c_d / dist_c_d)) * r_next
+                    v_move = (self.chest_p[:2] + v_next_pos) - self.drone_p[:2]
+                    # 手への引き込み
+                    if dist_h_d < 0.5:
+                        v_move += (self.hand_p[:2] - self.drone_p[:2]) * 0.3
+                    goal_z = self.hand_p[2] + 0.3
+                elif self.phase == "docked":
+                    v_move = self.hand_p[:2] - self.drone_p[:2]
+                    goal_z = self.hand_p[2] + 0.3
+                else:
+                    rospy.logwarn(f"Unknown phase: {self.phase}")
+
+            # --- 衝突回避 ---
+            dist_between = np.linalg.norm(
+                self.drone_p[:2] - self.other_drone_p[:2])
             # ドッキング中は反発を弱める
             repulsion_weight = 0.80 if self.phase != "docked" else 0.02
             # 手の近くでは回避より目標優先
@@ -198,14 +231,16 @@ class NavigatorDual:
                     repulsion_vec * strength * repulsion_weight * repulsion_influence
                 )
 
-            # 移動量の制限
+            # 目標までの距離の制限(最大1.0m)
             move_norm = np.linalg.norm(v_move)
-            if move_norm > 0.1:
-                v_move = (v_move / move_norm) * 0.1
+            if move_norm > 1.0:
+                v_move = (v_move / move_norm) * 1.0
 
             # 送信
             goal_pos = Vector3(
-                self.drone_p[0] + v_move[0], self.drone_p[1] + v_move[1], goal_z
+                self.drone_p[0] + v_move[0],
+                self.drone_p[1] + v_move[1],
+                goal_z
             )
             self.approach_pub.publish(
                 Pose(goal_pos, Quaternion(0, 0, 0, 1))

@@ -7,7 +7,7 @@ from std_msgs.msg import Empty
 from geometry_msgs.msg import PoseStamped
 import math
 # robot.pyからMultiFlapperをインポート
-from robot import MultiFlapper
+from script.multi_flapper.robot_dual import MultiFlapper
 from variables import *
 from util import dist
 import traceback
@@ -216,7 +216,7 @@ def main():
     sis.start()
     outcome = sm.execute()
     if outcome == 'failure':
-            flapper.stop()
+            flapper.land()
     rospy.spin()    
     sis.stop()
 

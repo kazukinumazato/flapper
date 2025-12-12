@@ -2,15 +2,15 @@
 import rospy
 
 # from cf_client2 import CfClient                 # <- オリジナルをコメントアウト
-from mock_cf_client import (
+from script.multi_flapper.sim_mock_cf_client import (
     MockCfClient as CfClient,
 )  # <- モッククライアントをインポートして置き換え
-from teleop2 import Teleop
-from cf_logger2 import CfLogger
+from script.multi_flapper.teleop_dual import Teleop
+from script.multi_flapper.cf_logger_unique import CfLogger
 from cflib.utils import uri_helper
-from motion_manager2 import MotionManager
+from script.multi_flapper.motion_manager_unique import MotionManager
 import traceback
-from dual_navigator import NavigatorDual
+from script.multi_flapper.navigator_dual import NavigatorDual
 
 uri1 = uri_helper.uri_from_env(default="radio://0/80/2M/E7E7E7E7E7")
 uri2 = uri_helper.uri_from_env(default="radio://0/80/2M/E7E7E7E7E8")

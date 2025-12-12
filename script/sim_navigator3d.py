@@ -15,9 +15,9 @@ import os
 # パスを追加
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from mock_cf_client_navigator import MockCfClientNavigator
-from mocap_simulator_nav import MoCapSimulatorNav
-from navigator3 import Navigator
+from script.sim_mock_cf_client_navigator import MockCfClientNavigator
+from script.sim_mocap_simulator_nav import MoCapSimulatorNav
+from script.navigator_3d import Navigator3D as Navigator
 
 
 def main():
@@ -37,7 +37,7 @@ def main():
     mock_client = MockCfClientNavigator()
     rospy.sleep(0.5)
     
-    # 3. Navigator3を起動
+    # 3. Navigator_3dを起動
     rospy.loginfo("[TEST] Starting Navigator3...")
     navigator = Navigator(theta_scale=0.1, r_min=0.8, r_max=2.5, eye_h=1.5)
     rospy.sleep(0.5)
