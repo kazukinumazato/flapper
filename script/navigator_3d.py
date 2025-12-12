@@ -177,10 +177,17 @@ class Navigator3D:
             if self.phase == "preparing":
                 if self.drone_p[2] - 3.0 < 0.3 and dist_c_d >= (r_curr - 0.1):
                     self.phase = "leading"
+                    rospy.loginfo("Switching to leading phase.")
 
             if self.phase == "leading":
                 if dist_c_d < r_curr + 0.1:
                     self.phase = "circling"
+                    rospy.loginfo("Switching to circling phase.")
+            
+            if self.phase=="circling":
+                if dist_c_d > r_curr + 0.3:
+                    self.phase = "leading"
+                    rospy.loginfo("Too far from personal space. Switching to leading phase.")
 
             # 時間ベースのドッキング判定（手の上に一定時間留まったら docked）
             if self.phase == "circling" or self.phase == "leading":
@@ -248,7 +255,6 @@ class Navigator3D:
                 elif self.phase == "leading":
                     v_move = self.hand_p[:2] - self.drone_p[:2]
                     goal_z = (self.drone_p[2] * 8.0 + (self.hand_p[2] + 0.15)*2.0) /10.0
-                    # v_move *= 20  # 少し強めに引っ張るように調整
 
                 elif self.phase == "circling":
                     goal_z = self.hand_p[2] + 0.15
@@ -272,7 +278,6 @@ class Navigator3D:
                         v_pull = (
                             self.hand_p[:2] - self.drone_p[:2]) * (1.0 - attraction)
                         v_move += v_pull
-                    v_move *= 200  # 少し強めに回るように調整
                 else:  # docked
                     v_move = np.array([0.0, 0.0])
                     goal_z = self.hand_p[2] + 0.3
