@@ -299,7 +299,7 @@ class Navigator3D:
 if __name__ == "__main__":
     try:
         rospy.init_node("navigator")
-        nav = Navigator(theta_scale=0.1)
+        nav = Navigator3D(theta_scale=0.1)
         rospy.loginfo("Navigator Node Ready.")
         rospy.spin()
     except rospy.ROSInterruptException:
