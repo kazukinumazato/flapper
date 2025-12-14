@@ -18,7 +18,7 @@ class Navigator3D:
         # --- 定点待機位置の設定 ---
         self.takeoff_x = 0.0  # 待機場所のX
         self.takeoff_y = 0.0  # 待機場所のY
-        self.takeoff_z = 2.3  # 待機場所のZ（離陸直後の高度）
+        self.takeoff_z = 2.0  # 待機場所のZ（離陸直後の高度）
 
         # 状態管理
         self.phase = "takeoff_hover"  # 最初のフェーズ
@@ -250,14 +250,14 @@ class Navigator3D:
                     target_r_pos = (
                         v_c_d_vec / (dist_c_d + 1e-5)) * (r_curr + 0.5)
                     v_move = target_r_pos - v_c_d_vec
-                    goal_z = 3.0
+                    goal_z = self.takeoff_z
 
                 elif self.phase == "leading":
                     v_move = self.hand_p[:2] - self.drone_p[:2]
-                    goal_z = (self.drone_p[2] * 8.0 + (self.hand_p[2] + 0.15)*2.0) /10.0
+                    goal_z = (self.drone_p[2] * 9.0 + (self.hand_p[2] + 0.30)*1.0) /10.0
 
                 elif self.phase == "circling":
-                    goal_z = self.hand_p[2] + 0.15
+                    goal_z = self.hand_p[2] + 0.30
                     attraction = np.clip(dist_h_d / 0.5, 0.2, 1.0)
                     theta_rot = 0.1
                     rot_mat = np.array(
@@ -284,8 +284,8 @@ class Navigator3D:
 
                 # 指令値の正規化（最大1m制限）
                 move_norm = np.linalg.norm(v_move)
-                if move_norm > 1.0:
-                    v_move = (v_move / move_norm) * 1.0
+                if move_norm > 0.3:
+                    v_move = (v_move / move_norm) * 0.3
 
                 goal_pos = Vector3(
                     self.drone_p[0] +v_move[0],

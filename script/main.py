@@ -7,7 +7,7 @@ from cflib.utils import uri_helper
 from motion_manager import MotionManager
 import traceback
 
-uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
+uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E8')
 
 def main():
     rospy.init_node('main')
