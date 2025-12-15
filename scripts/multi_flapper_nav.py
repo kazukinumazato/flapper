@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import rospy
-from src.multi_flapper.application.dual_drone_navigator import NavigatorDual
+from flapper.multi_flapper.application.dual_drone_navigator import NavigatorDual
 
 if __name__ == "__main__":
     # 引数などで自身のIDと相手のIDを指定して起動

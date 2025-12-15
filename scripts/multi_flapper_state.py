@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from src.multi_flapper.application.state_machine import main
+from flapper.multi_flapper.application.state_machine import main
 
 if __name__ == "__main__":
     main()
