@@ -268,13 +268,7 @@ class Navigator3D:
 
                 elif self.phase == "leading":
                     v_move = self.hand_p[:2] - self.drone_p[:2]
-<<<<<<< HEAD
                     goal_z = (self.drone_p[2] * 9.0 + (self.hand_p[2] + 0.30)*1.0) /10.0
-=======
-                    goal_z = (
-                        self.drone_p[2] * 8.0 + (self.hand_p[2] + 0.15) * 2.0
-                    ) / 10.0
->>>>>>> 889f0334e11f877b0d27564e75c823cc0c6d5829
 
                 elif self.phase == "circling":
                     goal_z = self.hand_p[2] + 0.30
