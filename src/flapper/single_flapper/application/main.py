@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import rospy
-from script.single_flapper.service.cf_client import CfClient
-from script.single_flapper.service.command_router import CommandRouter
-from script.single_flapper.service.cf_logger import CfLogger
+from flapper.single_flapper.service.cf_client import CfClient
+from flapper.single_flapper.service.command_router import CommandRouter
+from flapper.single_flapper.service.cf_logger import CfLogger
 from cflib.utils import uri_helper
-from script.single_flapper.domain.motion_manager import MotionManager
+from flapper.single_flapper.domain.motion_manager import MotionManager
 import traceback
 
 uri = uri_helper.uri_from_env(default="radio://0/80/2M/E7E7E7E7E8")

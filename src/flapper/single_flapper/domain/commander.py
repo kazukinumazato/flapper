@@ -2,7 +2,7 @@
 import rospy
 from std_msgs.msg import Empty, Int64
 from geometry_msgs.msg import Pose
-from script.shared.variables import *
+from flapper.shared.variables import *
 
 """
 ROSトピックにコマンドを送る

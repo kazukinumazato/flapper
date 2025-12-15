@@ -8,9 +8,9 @@ from geometry_msgs.msg import PoseStamped
 import math
 
 # robot.pyからMultiFlapperをインポート
-from script.multi_flapper.domain.commander import MultiFlapperCommander
-from script.shared.variables import *
-from script.shared.util import dist
+from flapper.multi_flapper.domain.commander import MultiFlapperCommander
+from flapper.shared.variables import *
+from flapper.shared.util import dist
 import traceback
 
 

@@ -4,8 +4,8 @@ import rospy
 import math
 from geometry_msgs.msg import Vector3, PoseStamped, Pose, Quaternion
 from std_msgs.msg import Empty, Float64
-from script.shared.util import dist
-from script.shared.variables import *
+from flapper.shared.util import dist
+from flapper.shared.variables import *
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 

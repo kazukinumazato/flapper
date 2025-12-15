@@ -6,9 +6,9 @@ import smach_ros
 from std_msgs.msg import Empty
 from geometry_msgs.msg import PoseStamped
 import math
-from script.single_flapper.domain.commander import FlapperCommander
-from script.shared.variables import *
-from script.shared.util import dist
+from flapper.single_flapper.domain.commander import FlapperCommander
+from flapper.shared.variables import *
+from flapper.shared.util import dist
 import traceback
 
 

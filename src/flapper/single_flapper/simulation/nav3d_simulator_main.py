@@ -15,11 +15,11 @@ import os
 # パスを追加
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from script.single_flapper.simulation.mock_cf_client_navigator import (
+from flapper.single_flapper.simulation.mock_cf_client_navigator import (
     MockCfClientNavigator,
 )
-from script.single_flapper.simulation.mocap_simulator_nav import MoCapSimulatorNav
-from script.single_flapper.application.navigation.navigator_3d import (
+from flapper.single_flapper.simulation.mocap_simulator_nav import MoCapSimulatorNav
+from flapper.single_flapper.application.navigation.navigator_3d import (
     Navigator3D as Navigator,
 )
 

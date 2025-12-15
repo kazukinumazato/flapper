@@ -1,7 +1,7 @@
 import rospy
 from std_msgs.msg import Int64
 from geometry_msgs.msg import PoseStamped
-from script.shared.variables import RobotState
+from flapper.shared.variables import RobotState
 
 """
 各種動きを定義

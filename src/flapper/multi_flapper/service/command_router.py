@@ -3,10 +3,10 @@
 import rospy
 from std_msgs.msg import Empty
 from geometry_msgs.msg import Pose
-from script.shared.variables import *
+from flapper.shared.variables import *
 from scipy.spatial.transform import Rotation as R
 import numpy as np
-from script.shared.util import extract_yaw
+from flapper.shared.util import extract_yaw
 
 
 class CommandRouter:
