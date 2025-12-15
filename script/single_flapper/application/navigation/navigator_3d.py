@@ -240,7 +240,7 @@ class Navigator3D:
                     self.dock_start_time = None
                     self.dock_hand_start_pos = None
 
-            # --- 移動制御ベクトル計算 ---
+            # --- 移動計算 ---
             v_move = np.array([0.0, 0.0])
             goal_z = self.drone_p[2]
 
@@ -268,7 +268,9 @@ class Navigator3D:
 
                 elif self.phase == "leading":
                     v_move = self.hand_p[:2] - self.drone_p[:2]
-                    goal_z = (self.drone_p[2] * 9.0 + (self.hand_p[2] + 0.30)*1.0) /10.0
+                    goal_z = (
+                        self.drone_p[2] * 9.0 + (self.hand_p[2] + 0.30) * 1.0
+                    ) / 10.0
 
                 elif self.phase == "circling":
                     goal_z = self.hand_p[2] + 0.30
@@ -300,17 +302,17 @@ class Navigator3D:
                     v_move = np.array([0.0, 0.0])
                     goal_z = self.hand_p[2] + 0.3
 
-                # 指令値の正規化（最大1m制限）
-                move_norm = np.linalg.norm(v_move)
-                if move_norm > 0.3:
-                    v_move = (v_move / move_norm) * 0.3
+            # 指令値の正規化（最大1m制限）
+            move_norm = np.linalg.norm(v_move)
+            if move_norm > 0.3:
+                v_move = (v_move / move_norm) * 0.3
 
-                goal_pos = Vector3(
-                    self.drone_p[0] + v_move[0], self.drone_p[1] + v_move[1], goal_z
-                )
+            goal_pos = Vector3(
+                self.drone_p[0] + v_move[0], self.drone_p[1] + v_move[1], goal_z
+            )
 
-                self.approach_pub.publish(Pose(goal_pos, self.look_at_quaternion()))
-                rate.sleep()
+            self.approach_pub.publish(Pose(goal_pos, self.look_at_quaternion()))
+            rate.sleep()
 
         self.running = False
         rospy.loginfo("drone stay")
