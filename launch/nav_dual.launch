@@ -1,6 +1,6 @@
 <launch>
 
-  <include file="dual_flapper_mocap.launch"/>
+  <include file="$(find flapper)/launch/dual_flapper_mocap.launch"/>
 
   <node pkg="flapper" type="dual_flapper_main.py" name="main" output="screen" cwd="node" />
 

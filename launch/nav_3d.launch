@@ -1,9 +1,9 @@
 <launch>
-  <include file="flapper/launch/mocap.launch"/>
+  <include file="$(find flapper)/launch/mocap.launch"/>
 
   <node pkg="flapper" type="single_flapper_main.py" name="main" output="screen" cwd="node" />
 
   <node pkg="flapper" type="single_flapper_state.py" name="state" output="screen" cwd="node" />
 
-  <node pkg="flapper" type="singla_flapper_nav3d.py" name="navigator" output="screen" cwd="node" />
+  <node pkg="flapper" type="single_flapper_nav3d.py" name="navigator" output="screen" cwd="node" />
 </launch>
