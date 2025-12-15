@@ -2,24 +2,23 @@
 import rospy
 from std_msgs.msg import Empty, Int64
 from geometry_msgs.msg import Pose
-from variables import *
+from script.shared.variables import *
 
-class MultiFlapper:
+
+class MultiFlapperCommander:
     def __init__(self):
-        self.state_sub = rospy.Subscriber('/cf1/state', Int64,
-                                           self.state1_callback)
-        self.state_sub2 = rospy.Subscriber('/cf2/state', Int64,
-                                           self.state2_callback)
-        self.takeoff_pub = rospy.Publisher('/teleop_command/takeoff', Empty)
-        self.land_pub = rospy.Publisher('/teleop_command/land', Empty)
-        self.halt_pub = rospy.Publisher('/teleop_command/halt', Empty)
-        
-        self.palm_land_pub = rospy.Publisher('/teleop_command/palm_land', Pose)
+        self.state_sub = rospy.Subscriber("/cf1/state", Int64, self.state1_callback)
+        self.state_sub2 = rospy.Subscriber("/cf2/state", Int64, self.state2_callback)
+        self.takeoff_pub = rospy.Publisher("/teleop_command/takeoff", Empty)
+        self.land_pub = rospy.Publisher("/teleop_command/land", Empty)
+        self.halt_pub = rospy.Publisher("/teleop_command/halt", Empty)
+
+        self.palm_land_pub = rospy.Publisher("/teleop_command/palm_land", Pose)
 
         self.state1 = RobotState.START
         self.state2 = RobotState.START
 
-# --- コールバック ---
+    # --- コールバック ---
     def state1_callback(self, msg):
         self.state1 = msg.data
 
@@ -52,6 +51,5 @@ class MultiFlapper:
         rospy.loginfo("Sending palm land command to both drones")
         # Yaw角のみを Pose.orientation.z に入れて送信するなどの取り決めが必要
         pose_msg = Pose()
-        pose_msg.orientation.z = yaw # 簡易的にYaw角を運ぶ
+        pose_msg.orientation.z = yaw  # 簡易的にYaw角を運ぶ
         self.palm_land_pub.publish(yaw)
-

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import rospy
-from script.multi_flapper.cf_client_unique import CfClient
-from script.multi_flapper.teleop_dual import Teleop
-from script.multi_flapper.cf_logger_unique import CfLogger
+from script.multi_flapper.service.cf_client import CfClient
+from script.multi_flapper.service.command_router import CommandRouter
+from script.multi_flapper.service.cf_logger import CfLogger
 from cflib.utils import uri_helper
-from script.multi_flapper.motion_manager_unique import MotionManager
+from script.multi_flapper.domain.motion_manager import MotionManager
 import traceback
 
 uri1 = uri_helper.uri_from_env(default="radio://0/80/2M/E7E7E7E7E7")
@@ -24,7 +24,7 @@ def main():
     cf2 = CfClient(uri2, logger2, drone_id=2)
     manager2 = MotionManager(cf2, drone_id=2, hand_id=2)
 
-    teleop = Teleop(manager1, manager2)
+    router = CommandRouter(manager1, manager2)
     rospy.spin()
 
 

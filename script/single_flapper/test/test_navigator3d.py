@@ -2,6 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
+"""
+単体で動くnavigatorのロジック確認用の可視化テスト
+"""
 class Final3DSim:
     def __init__(self):
         # 初期位置：PSの内側上空 (x, y, z)
@@ -41,7 +44,8 @@ class Final3DSim:
             dist_to_hand_z = abs(self.drone_pos[2] - (self.hand_pos[2] + 0.3))
             if dist_to_hand_xy < 0.15 and dist_to_hand_z < 0.1:
                 self.phase = 'docked'
-                print("Docked!")
+
+print("Docked!")
 
         # --- 移動計算 ---
         v_move = np.array([0.0, 0.0])

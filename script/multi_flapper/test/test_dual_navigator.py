@@ -3,6 +3,12 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 
+"""
+単体で動くnavigatorのロジックの可視化シミュレーター
+cfの動きはよくわからないので設計方針の確認に過ぎない点に注意"
+"""
+
+
 class DroneAgent:
     def __init__(self, agent_id, side, start_pos, hand_pos, target_z=3.0):
         self.id = agent_id
