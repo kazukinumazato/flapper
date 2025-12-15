@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import rospy
-from src.single_flapper.application.navigation.navigator_3d import Navigator3D
+from flapper.single_flapper.application.navigation.navigator_3d import Navigator3D
 
 if __name__ == "__main__":
     try:
