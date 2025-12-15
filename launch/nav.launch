@@ -1,0 +1,11 @@
+<launch>
+
+  <include file="flapper/launch/mocap.launch"/>
+
+  <node pkg="flapper" type="single_flapper_main.py" name="main" output="screen" cwd="node" />
+
+  <node pkg="flapper" type="single_flapper_statepy" name="state" output="screen" cwd="node" />
+
+  <node pkg="flapper" type="single_flapper_nav.py" name="navigator" output="screen" cwd="node" />
+
+</launch>
