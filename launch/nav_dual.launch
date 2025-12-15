@@ -1,65 +1,12 @@
 <launch>
 
-    <arg name="robot_id" default="1" />
+  <include file="dual_flapper_mocap.launch"/>
 
-    <node pkg="mocap_optitrack"
-        type="mocap_node"
-        name="mocap_node"
-        respawn="false"
-        launch-prefix="">
-        <rosparam subst_value="true">
-        rigid_bodies:
-            # --- ドローン1号機 (Flapper1) ---
-            '1': 
-                pose:mocap/flapper1/pose
-                pose2d: mocap/flapper1/ground_pose
-                child_frame_id: baselink
-                parent_frame_id: world
+  <node pkg="flapper" type="dual_flapper_main.py" name="main" output="screen" cwd="node" />
 
-            # --- ドローン2号機 (Flapper2) ---
-            '4':
-                pose: mocap/flapper2/pose
-                pose2d: mocap/flapper2/ground_pose
-                child_frame_id: baselink
-                parent_frame_id: world
+  <node pkg="flapper" type="dual_flapper_state.py" name="state" output="screen" cwd="node" />
 
-            # --- 右手 (Hand1) ---
-            '2': 
-                pose: mocap/hand1/pose
-                pose2d: mocap/hand1/ground_pose
-                child_frame_id: baselink
-                parent_frame_id: world
-
-
-            # --- 左手 (Hand2) ---
-            '5': 
-                pose: mocap/hand2/pose
-                pose2d: mocap/hand2/ground_pose
-                child_frame_id: baselink
-                parent_frame_id: world
-
-
-            # --- 胸 (Chest) ---
-            '3':
-                pose: mocap/chest/pose
-                pose2d: mocap/chest/ground_pose
-                child_frame_id: baselink
-                parent_frame_id: world
-            
-            optitrack_config:
-                enable_optitrack: true
-                multicast_address: 239.255.42.99
-                command_port: 1510
-                data_port: 1511
-        </rosparam>
-        <remap from="~mocap/pose" to="mocap/pose" />
-    </node>
-
-    <node pkg="flapper" type="main_dual.py" name="main" output="screen" cwd="node" />
-
-    <node pkg="flapper" type="state_dual.py" name="state" output="screen" cwd="node" />
-
-    <node pkg="flapper" type="navigator_dual.py" name="navigator" output="screen" cwd="node" />
+  <node pkg="flapper" type="dual_flapper_nav.py" name="navigator" output="screen" cwd="node" />
 
 
 </launch>
