@@ -2,11 +2,11 @@
 
   <include file="$(find flapper)/launch/dual_flapper_mocap.launch"/>
 
-  <node pkg="flapper" type="dual_flapper_main.py" name="main" output="screen" cwd="node" />
+  <node pkg="flapper" type="multi_flapper_main.py" name="main" output="screen" cwd="node" />
 
-  <node pkg="flapper" type="dual_flapper_state.py" name="state" output="screen" cwd="node" />
+  <node pkg="flapper" type="multi_flapper_state.py" name="state" output="screen" cwd="node" />
 
-  <node pkg="flapper" type="dual_flapper_nav.py" name="navigator" output="screen" cwd="node" />
+  <node pkg="flapper" type="multi_flapper_nav.py" name="navigator" output="screen" cwd="node" />
 
 
 </launch>

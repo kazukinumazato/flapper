@@ -216,7 +216,7 @@ def main():
 
     # Create a SMACH state machine
     sm = StateMachine(outcomes=["success", "failure"])
-    flapper = MultiFlapper()
+    flapper = MultiFlapperCommander()
 
     # Open the container
     with sm:
