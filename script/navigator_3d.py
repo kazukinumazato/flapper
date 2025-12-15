@@ -8,12 +8,21 @@ from scipy.spatial.transform import Rotation as R
 
 
 class Navigator3D:
-    def __init__(self, theta_scale=0.1, r_min=0.7, r_max=1.5, eye_h=1.5):
+    """
+    ドローンの自律移動を制御するクラス
+    @param theta_scale: ドローンの向き調整の速度スケール
+    @param r_min: パーソナルスペースの最小半径(m)
+    @param r_max: パーソナルスペースの最大半径(m)
+    @param chest2eye_h: 胸から目までの高さ(m)
+    """
+
+    def __init__(self, theta_scale=0.1, r_min=0.7, r_max=1.5, chest2eye_h=0.2):
         # 軌道設計パラメータ
         self.theta_scale = theta_scale
         self.r_min = r_min
         self.r_max = r_max
-        self.eye_h = eye_h
+        self.chest2eye_h = chest2eye_h
+        self.eye_h = 1.5
 
         # --- 定点待機位置の設定 ---
         self.takeoff_x = 0.0  # 待機場所のX
@@ -48,8 +57,7 @@ class Navigator3D:
         self.approach_start_sub = rospy.Subscriber(
             "approach_start", Empty, self.start_cb
         )
-        self.approach_stop_sub = rospy.Subscriber(
-            "approach_stop", Empty, self.stop_cb)
+        self.approach_stop_sub = rospy.Subscriber("approach_stop", Empty, self.stop_cb)
 
         # --- Publishers ---
         self.approach_pub = rospy.Publisher("approach", Pose, queue_size=1)
@@ -63,8 +71,7 @@ class Navigator3D:
             "distance/hand_drone_on_XY_plane", Float64, queue_size=1
         )
 
-        self.phase_pub = rospy.Publisher(
-            "navigator/phase", Int64, queue_size=1)
+        self.phase_pub = rospy.Publisher("navigator/phase", Int64, queue_size=1)
         self.ps_radius_pub = rospy.Publisher(
             "navigator/ps_radius", Float64, queue_size=1
         )
@@ -86,6 +93,7 @@ class Navigator3D:
         self.chest_p = np.array(
             [msg.pose.position.x, msg.pose.position.y, msg.pose.position.z]
         )
+        self.eye_h = self.chest_p[2] + self.chest2eye_h
 
     def hand_cb(self, msg):
         self.hand_p = np.array(
@@ -183,11 +191,13 @@ class Navigator3D:
                 if dist_c_d < r_curr + 0.1:
                     self.phase = "circling"
                     rospy.loginfo("Switching to circling phase.")
-            
-            if self.phase=="circling":
+
+            if self.phase == "circling":
                 if dist_c_d > r_curr + 0.3:
                     self.phase = "leading"
-                    rospy.loginfo("Too far from personal space. Switching to leading phase.")
+                    rospy.loginfo(
+                        "Too far from personal space. Switching to leading phase."
+                    )
 
             # 時間ベースのドッキング判定（手の上に一定時間留まったら docked）
             if self.phase == "circling" or self.phase == "leading":
@@ -201,14 +211,17 @@ class Navigator3D:
                         # 手が動きすぎていないかチェック
                         if self.dock_hand_start_pos is not None:
                             hand_movement = np.linalg.norm(
-                                self.hand_p - self.dock_hand_start_pos)
+                                self.hand_p - self.dock_hand_start_pos
+                            )
                         else:
                             hand_movement = 0.0
 
                         if hand_movement > self.dock_hand_move_thresh:
                             # 手が動きすぎた -> カウントリセット
-                            rospy.loginfo("Docking cancelled: hand moved %.3f m (> %.3f m)" % (
-                                hand_movement, self.dock_hand_move_thresh))
+                            rospy.loginfo(
+                                "Docking cancelled: hand moved %.3f m (> %.3f m)"
+                                % (hand_movement, self.dock_hand_move_thresh)
+                            )
                             self.dock_start_time = None
                             self.dock_hand_start_pos = None
                         else:
@@ -216,7 +229,9 @@ class Navigator3D:
                             if now - self.dock_start_time >= self.dock_hold_time:
                                 self.phase = "docked"
                                 rospy.loginfo(
-                                    "Docked: held over hand for %.2f s" % self.dock_hold_time)
+                                    "Docked: held over hand for %.2f s"
+                                    % self.dock_hold_time
+                                )
                                 # 成功時はタイマーと保持位置をクリアしておく
                                 self.dock_start_time = None
                                 self.dock_hand_start_pos = None
@@ -231,7 +246,7 @@ class Navigator3D:
 
             if dist_c_h < 0.5:
                 v_move = np.array([0.0, 0.0])  # 胸が手に近い場合はXY移動なし
-                self.phase_pub.publish(-phase_num) 
+                self.phase_pub.publish(-phase_num)
             else:
                 self.phase_pub.publish(phase_num)
 
@@ -247,19 +262,25 @@ class Navigator3D:
 
                 elif self.phase == "preparing":
                     v_c_d_vec = self.drone_p[:2] - self.chest_p[:2]
-                    target_r_pos = (
-                        v_c_d_vec / (dist_c_d + 1e-5)) * (r_curr + 0.5)
+                    target_r_pos = (v_c_d_vec / (dist_c_d + 1e-5)) * (r_curr + 0.5)
                     v_move = target_r_pos - v_c_d_vec
                     goal_z = self.takeoff_z
 
                 elif self.phase == "leading":
                     v_move = self.hand_p[:2] - self.drone_p[:2]
+<<<<<<< HEAD
                     goal_z = (self.drone_p[2] * 9.0 + (self.hand_p[2] + 0.30)*1.0) /10.0
+=======
+                    goal_z = (
+                        self.drone_p[2] * 8.0 + (self.hand_p[2] + 0.15) * 2.0
+                    ) / 10.0
+>>>>>>> 889f0334e11f877b0d27564e75c823cc0c6d5829
 
                 elif self.phase == "circling":
                     goal_z = self.hand_p[2] + 0.30
                     attraction = np.clip(dist_h_d / 0.5, 0.2, 1.0)
-                    theta_rot = 0.1
+                    theta_rot = 0.1  # 回転角度（ラジアン）
+                    # 回転行列の作成
                     rot_mat = np.array(
                         [
                             [np.cos(theta_rot), -np.sin(theta_rot)],
@@ -267,16 +288,19 @@ class Navigator3D:
                         ]
                     )
                     v_c_d_vec = self.drone_p[:2] - self.chest_p[:2]
+                    # 目標距離の計算
                     r_target = dist_c_h
-                    r_next = max(dist_c_d + (r_target - dist_c_d)
-                                 * 0.1, r_curr + 0.05)
+                    # 次の位置の計算
+                    r_next = max(dist_c_d + (r_target - dist_c_d) * 0.1, r_curr + 0.05)
+                    # 次の位置ベクトル（胸基準）の計算
                     v_next_pos = (rot_mat @ (v_c_d_vec / dist_c_d)) * r_next
                     v_move = (
                         (self.chest_p[:2] + v_next_pos) - self.drone_p[:2]
                     ) * attraction
                     if dist_h_d < 0.5:
-                        v_pull = (
-                            self.hand_p[:2] - self.drone_p[:2]) * (1.0 - attraction)
+                        v_pull = (self.hand_p[:2] - self.drone_p[:2]) * (
+                            1.0 - attraction
+                        )
                         v_move += v_pull
                 else:  # docked
                     v_move = np.array([0.0, 0.0])
@@ -288,13 +312,10 @@ class Navigator3D:
                     v_move = (v_move / move_norm) * 0.3
 
                 goal_pos = Vector3(
-                    self.drone_p[0] +v_move[0],
-                      self.drone_p[1] + v_move[1],
-                        goal_z
+                    self.drone_p[0] + v_move[0], self.drone_p[1] + v_move[1], goal_z
                 )
 
-                self.approach_pub.publish(
-                    Pose(goal_pos, self.look_at_quaternion()))
+                self.approach_pub.publish(Pose(goal_pos, self.look_at_quaternion()))
                 rate.sleep()
 
         self.running = False
