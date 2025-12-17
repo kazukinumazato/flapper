@@ -8,22 +8,22 @@
         launch-prefix="">
         <rosparam subst_value="true">
       rigid_bodies:
-         '1':
+         '7':
                pose: mocap/flapper1/pose
                pose2d: mocap/flapper1/ground_pose
                child_frame_id: baselink
                parent_frame_id: world
-         '2':  
+         '3':  
                pose: mocap/hand1/pose
                pose2d: mocap/hand1/ground_pose
                child_frame_id: baselink
                parent_frame_id: world
-         '5':
+         '6':
                pose: mocap/flapper2/pose
                pose2d: mocap/flapper2/ground_pose
                child_frame_id: baselink
                parent_frame_id: world
-         '3':  
+         '5':  
                pose: mocap/hand2/pose
                pose2d: mocap/hand2/ground_pose
                child_frame_id: baselink
