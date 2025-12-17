@@ -211,9 +211,10 @@ class NavigatorDual:
                         "Reached to beginning height. Switching to preparing phase."
                     )
             if self.phase == "preparing":
-                if self.drone_p[2] > 3.0 and dist_c_d >= r_curr - 0.1:
+                if self.drone_p[2] - 3.0 < 0.3 and dist_c_d >= r_curr - 0.1:
                     self.phase = "leading"
                     rospy.loginfo("Switching to leading phase.")
+
             if self.phase == "leading":
                 if dist_c_d < r_curr + 0.1:
                     self.phase = "circling"
