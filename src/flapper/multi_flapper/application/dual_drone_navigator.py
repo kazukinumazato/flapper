@@ -296,7 +296,24 @@ class NavigatorDual:
                 elif self.phase == "circling":
                     goal_z = self.hand_p[2] + 0.30
                     attraction = np.clip(dist_h_d / 0.5, 0.2, 1.0)
-                    theta_rot = 0.1  # 回転角度（ラジアン）
+
+                    # 手の向きを計算（胸から手へのベクトル）
+                    hand_direction = self.hand_p[:2] - self.chest_p[:2]
+                    hand_angle = np.arctan2(hand_direction[1], hand_direction[0])
+                    
+                    # ドローンの現在のヨー角を取得
+                    drone_ori = self.drone_raw_pose.orientation
+                    current_theta = R.from_quat([drone_ori.x, drone_ori.y, drone_ori.z, drone_ori.w]).as_euler("xyz")[2]
+                    
+                    # 手の向きとドローンの向きの角度差を計算
+                    diff = (hand_angle - current_theta + np.pi) % (2 * np.pi) - np.pi
+                    
+                    # 回転角度を角度差の1/10に設定（時計回りまたは反時計回りを自動選択）
+                    theta_rot = diff * 0.1
+                    
+
+                    # theta_rot = 0.1  # 回転角度（ラジアン）
+                    
                     # 回転行列の作成
                     rot_mat = np.array(
                         [
@@ -355,7 +372,6 @@ class NavigatorDual:
             self.approach_pub.publish(
                 Pose(goal_pos, self.look_at_quaternion())
             )  # 向きは簡易化
-            self.phase_pub.publish(self.phase)
             rate.sleep()
 
         self.running = False
