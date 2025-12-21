@@ -100,11 +100,17 @@ class Approach(State):
         self.chest_pose_sub = rospy.Subscriber(
             "mocap_node/mocap/chest/pose", PoseStamped, self.chest_pose_sub_callback
         )
-        self.hand_pose_sub = rospy.Subscriber(
-            "mocap_node/mocap/hand1/pose", PoseStamped, self.hand_pose_sub_callback
+        self.hand1_pose_sub = rospy.Subscriber(
+            "mocap_node/mocap/hand1/pose", PoseStamped, self.hand1_pose_sub_callback
         )
-        self.drone_pose_sub = rospy.Subscriber(
-            "mocap_node/mocap/flapper1/pose", PoseStamped, self.drone_pose_sub_callback
+        self.drone1_pose_sub = rospy.Subscriber(
+            "mocap_node/mocap/flapper1/pose", PoseStamped, self.drone1_pose_sub_callback
+        )
+        self.hand2_pose_sub = rospy.Subscriber(
+            "mocap_node/mocap/hand2/pose", PoseStamped, self.hand2_pose_sub_callback
+        )
+        self.drone2_pose_sub = rospy.Subscriber(
+            "mocap_node/mocap/flapper2/pose", PoseStamped, self.drone2_pose_sub_callback
         )
         self.timeout = timeout
         self.safety_radius = safety_radius
@@ -113,11 +119,17 @@ class Approach(State):
     def chest_pose_sub_callback(self, msg):
         self.chest_pose = msg.pose
 
-    def hand_pose_sub_callback(self, msg):
-        self.hand_pose = msg.pose
+    def hand1_pose_sub_callback(self, msg):
+        self.hand1_pose = msg.pose
 
-    def drone_pose_sub_callback(self, msg):
-        self.drone_pose = msg.pose
+    def drone1_pose_sub_callback(self, msg):
+        self.drone1_pose = msg.pose
+    
+    def hand2_pose_sub_callback(self, msg):
+        self.hand2_pose = msg.pose
+
+    def drone2_pose_sub_callback(self, msg):
+        self.drone2_pose = msg.pose
 
     def execute(self, userdata):
         self.approach_start_pub.publish(Empty())  # Navigatorに一斉開始を指示
@@ -128,8 +140,10 @@ class Approach(State):
             # MoCapデータが揃っているかチェック
             if (
                 not hasattr(self, "chest_pose")
-                or not hasattr(self, "hand_pose")
-                or not hasattr(self, "drone_pose")
+                or not hasattr(self, "hand1_pose")
+                or not hasattr(self, "drone1_pose")
+                or not hasattr(self, "hand2_pose")
+                or not hasattr(self, "drone2_pose")
             ):
                 rospy.logwarn(
                     "MoCap data not yet available for Approach transition check."
@@ -138,15 +152,22 @@ class Approach(State):
                 continue
 
             chest_pos = self.chest_pose.position
-            hand_pos = self.hand_pose.position
-            drone_pos = self.drone_pose.position
-            distance_hand_drone_on_XY_plane = dist(hand_pos, drone_pos, True)
-            distance_chest_hand = dist(chest_pos, hand_pos)
-            rospy.loginfo(f"distance_chest_hand: {distance_chest_hand}")
-            if distance_chest_hand < self.safety_radius:
+            hand1_pos = self.hand1_pose.position
+            drone1_pos = self.drone1_pose.position
+            hand2_pos = self.hand2_pose.position
+            drone2_pos = self.drone2_pose.position
+            distance_hand1_drone1_on_XY_plane = dist(hand1_pos, drone1_pos, True)
+            distance_hand1_drone1_z=drone1_pos.z-hand1_pos.z
+            distance_chest_hand1 = dist(chest_pos, hand1_pos)
+            distance_hand2_drone2_on_XY_plane = dist(hand2_pos, drone2_pos, True)
+            distance_hand2_drone2_z=drone2_pos.z-hand2_pos.z
+            distance_chest_hand2 = dist(chest_pos, hand2_pos)
+
+            rospy.loginfo(f"distance_chest_hand: 1={distance_chest_hand1}, 2={distance_chest_hand2}")
+            if distance_chest_hand1 < self.safety_radius or distance_chest_hand2 < self.safety_radius:
                 self.approach_stop_pub.publish(Empty())
                 return "stay"
-            if distance_hand_drone_on_XY_plane < self.threshold:
+            if distance_hand1_drone1_on_XY_plane < self.threshold and distance_hand2_drone2_on_XY_plane< self.threshold and distance_hand2_drone2_z<35.0 and distance_hand1_drone1_z<35.0:
                 self.approach_stop_pub.publish(Empty())
                 return "palm_land"
             rospy.sleep(0.1)

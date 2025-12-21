@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from std_msgs.msg import Empty
+from std_msgs.msg import Empty, Float64
 from geometry_msgs.msg import Pose
 from flapper.shared.variables import *
 from scipy.spatial.transform import Rotation as R
@@ -26,7 +26,7 @@ class CommandRouter:
             "/teleop_command/halt", Empty, self.stop_sub_callback
         )
         self.palm_land_sub = rospy.Subscriber(
-            "/teleop_command/palm_land", Pose, self.palm_land_sub_callback
+            "/palm_land", Float64, self.palm_land_sub_callback
         )
 
         # 個別アプローチ指令の購読（Navigator1, Navigator2がパブリッシュ）
@@ -50,12 +50,12 @@ class CommandRouter:
         self.mm2.stop()
 
     def palm_land_sub_callback(self, msg):
-        yaw = extract_yaw(msg.orientation)
-        rospy.loginfo("Palm land command received with yaw: %f" % np.rad2deg(yaw))
+        # yaw = extract_yaw(msg.orientation)
+        rospy.loginfo("Palm land command received")
         # 2機に一斉に指令を分配
-        self.mm1.palm_land(yaw)
-        self.mm2.palm_land(yaw)
-
+        self.mm1.palm_land(msg.data)
+        self.mm2.palm_land(msg.data)
+        
     def approach_sub_callback1(self, msg):
         yaw = extract_yaw(msg.orientation)
         rospy.loginfo(

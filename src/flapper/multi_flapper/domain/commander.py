@@ -1,6 +1,6 @@
 #!usr/bin/env python
 import rospy
-from std_msgs.msg import Empty, Int64
+from std_msgs.msg import Empty, Int64, Float64
 from geometry_msgs.msg import Pose
 from flapper.shared.variables import *
 
@@ -13,7 +13,7 @@ class MultiFlapperCommander:
         self.land_pub = rospy.Publisher("/teleop_command/land", Empty)
         self.halt_pub = rospy.Publisher("/teleop_command/halt", Empty)
 
-        self.palm_land_pub = rospy.Publisher("/teleop_command/palm_land", Pose)
+        self.palm_land_pub = rospy.Publisher("/palm_land", Float64)
 
         self.state1 = RobotState.START
         self.state2 = RobotState.START
@@ -50,6 +50,6 @@ class MultiFlapperCommander:
     def palm_land(self, yaw):
         rospy.loginfo("Sending palm land command to both drones")
         # Yaw角のみを Pose.orientation.z に入れて送信するなどの取り決めが必要
-        pose_msg = Pose()
-        pose_msg.orientation.z = yaw  # 簡易的にYaw角を運ぶ
+        # pose_msg = Pose()
+        # pose_msg.orientation.z = yaw  # 簡易的にYaw角を運ぶ
         self.palm_land_pub.publish(yaw)

@@ -74,7 +74,7 @@ class MotionManager:
         self.drone_client.land(0, duration)
         self.robot_state = RobotState.LAND
         self.state_pub.publish(RobotState.LAND)
-        rospy.sleep(duration)
+        # rospy.sleep(duration)
         rospy.loginfo(f"[CF{self.drone_id}]land succeeded")
         self.robot_state = RobotState.STOP
         self.state_pub.publish(RobotState.STOP)
