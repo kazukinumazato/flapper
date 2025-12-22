@@ -3,9 +3,10 @@
 import rospy
 from smach import State, StateMachine
 import smach_ros
-from std_msgs.msg import Empty
+from std_msgs.msg import Empty, Int64
 from geometry_msgs.msg import PoseStamped
 import math
+from typing import Any
 
 # robot.pyからMultiFlapperをインポート
 from flapper.multi_flapper.domain.commander import MultiFlapperCommander
@@ -43,7 +44,7 @@ class SingleCommandState(State):
         self.goal_flight_state = goal_flight_state
         self.timeout = timeout
 
-    def execute(self, userdata):
+    def execute(self, userdata) -> Any:
         # 状態チェックはTakeoffとLandのオーバーライドで実行
         pass  # Base class execute is not used
 
@@ -95,7 +96,7 @@ class Approach(State):
         self.robot = robot
         self.approach_start_pub = rospy.Publisher("approach_start", Empty, queue_size=1)
         self.approach_stop_pub = rospy.Publisher("approach_stop", Empty, queue_size=1)
-
+        """
         # 状態遷移判定のため、CF1とHand1を購読する (簡略化)
         self.chest_pose_sub = rospy.Subscriber(
             "mocap_node/mocap/chest/pose", PoseStamped, self.chest_pose_sub_callback
@@ -112,10 +113,19 @@ class Approach(State):
         self.drone2_pose_sub = rospy.Subscriber(
             "mocap_node/mocap/flapper2/pose", PoseStamped, self.drone2_pose_sub_callback
         )
+        """
+        self.phase_sub1 = rospy.Subscriber(
+            "navigator1/phase", Int64, self.phase_sub1_cb
+        )
+        self.phase_sub2 = rospy.Subscriber(
+            "navigator2/phase", Int64, self.phase_sub2_cb
+        )
+
         self.timeout = timeout
         self.safety_radius = safety_radius
         self.threshold = threshold
 
+    """
     def chest_pose_sub_callback(self, msg):
         self.chest_pose = msg.pose
 
@@ -124,12 +134,19 @@ class Approach(State):
 
     def drone1_pose_sub_callback(self, msg):
         self.drone1_pose = msg.pose
-    
+
     def hand2_pose_sub_callback(self, msg):
         self.hand2_pose = msg.pose
 
     def drone2_pose_sub_callback(self, msg):
         self.drone2_pose = msg.pose
+    """
+
+    def phase_sub1_cb(self, msg):
+        self.phase1 = msg.data
+
+    def phase_sub2_cb(self, msg):
+        self.phase2 = msg.data
 
     def execute(self, userdata):
         self.approach_start_pub.publish(Empty())  # Navigatorに一斉開始を指示
@@ -137,6 +154,16 @@ class Approach(State):
         while rospy.get_time() < start_t + self.timeout:
             if rospy.is_shutdown():
                 return "failure"
+
+            if not hasattr(self, "phase1") or not hasattr(self, "phase2"):
+                rospy.logwarn("Docked data not yet available")
+            if self.phase < 0 and self.phase2 < 0:
+                return "stay"
+            if self.phase1 == 5 and self.phase2 == 5:
+                self.approach_stop_pub.publish(Empty())
+                return "palm_land"
+
+            """
             # MoCapデータが揃っているかチェック
             if (
                 not hasattr(self, "chest_pose")
@@ -157,19 +184,30 @@ class Approach(State):
             hand2_pos = self.hand2_pose.position
             drone2_pos = self.drone2_pose.position
             distance_hand1_drone1_on_XY_plane = dist(hand1_pos, drone1_pos, True)
-            distance_hand1_drone1_z=drone1_pos.z-hand1_pos.z
+            distance_hand1_drone1_z = drone1_pos.z - hand1_pos.z
             distance_chest_hand1 = dist(chest_pos, hand1_pos)
             distance_hand2_drone2_on_XY_plane = dist(hand2_pos, drone2_pos, True)
-            distance_hand2_drone2_z=drone2_pos.z-hand2_pos.z
+            distance_hand2_drone2_z = drone2_pos.z - hand2_pos.z
             distance_chest_hand2 = dist(chest_pos, hand2_pos)
 
-            rospy.loginfo(f"distance_chest_hand: 1={distance_chest_hand1}, 2={distance_chest_hand2}")
-            if distance_chest_hand1 < self.safety_radius or distance_chest_hand2 < self.safety_radius:
+            rospy.loginfo(
+                f"distance_chest_hand: 1={distance_chest_hand1}, 2={distance_chest_hand2}"
+            )
+            if (
+                distance_chest_hand1 < self.safety_radius
+                or distance_chest_hand2 < self.safety_radius
+            ):
                 self.approach_stop_pub.publish(Empty())
                 return "stay"
-            if distance_hand1_drone1_on_XY_plane < self.threshold and distance_hand2_drone2_on_XY_plane< self.threshold and distance_hand2_drone2_z<35.0 and distance_hand1_drone1_z<35.0:
+            if (
+                distance_hand1_drone1_on_XY_plane < self.threshold
+                and distance_hand2_drone2_on_XY_plane < self.threshold
+                and distance_hand2_drone2_z < 35.0
+                and distance_hand1_drone1_z < 35.0
+            ):
                 self.approach_stop_pub.publish(Empty())
                 return "palm_land"
+            """
             rospy.sleep(0.1)
         self.approach_stop_pub.publish(Empty())
         return "failure"
@@ -178,6 +216,7 @@ class Approach(State):
 class Stay(State):
     def __init__(self, timeout=120, safety_radius=0.30):
         State.__init__(self, outcomes=["approach", "failure"])
+        """
         # 状態遷移判定のため、CF1とHand1を購読する (簡略化)
         self.chest_pose_sub = rospy.Subscriber(
             "mocap_node/mocap/chest/pose", PoseStamped, self.chest_pose_sub_callback
@@ -185,14 +224,30 @@ class Stay(State):
         self.hand_pose_sub = rospy.Subscriber(
             "mocap_node/mocap/hand1/pose", PoseStamped, self.hand_pose_sub_callback
         )
+        """
+        self.phase_sub1 = rospy.Subscriber(
+            "navigator1/phase", Int64, self.phase_sub1_cb
+        )
+        self.phase_sub2 = rospy.Subscriber(
+            "navigator2/phase", Int64, self.phase_sub2_cb
+        )
+
         self.timeout = timeout
         self.safety_radius = safety_radius
 
+    """
     def chest_pose_sub_callback(self, msg):
         self.chest_pose = msg.pose
 
     def hand_pose_sub_callback(self, msg):
         self.hand_pose = msg.pose
+    """
+
+    def phase_sub1_cb(self, msg):
+        self.phase1 = msg.data
+
+    def phase_sub2_cb(self, msg):
+        self.phase2 = msg.data
 
     def execute(self, userdata):
         start_t = rospy.get_time()
@@ -200,6 +255,13 @@ class Stay(State):
             rospy.sleep(0.1)
             if rospy.is_shutdown():
                 return "failure"
+
+            if not hasattr(self, "phase1") or not hasattr(self, "phase2"):
+                rospy.logwarn("Phase data not yet available")
+            if self.phase >= 0 and self.phase2 >= 0:
+                return "approach"
+
+            """
             if not hasattr(self, "chest_pose") or not hasattr(self, "hand_pose"):
                 rospy.logwarn(
                     "Unable to get chest_pose/hand_pose. Check mocap settings."
@@ -211,6 +273,7 @@ class Stay(State):
             rospy.loginfo(f"distance_chest_hand: {distance_chest_hand}")
             if distance_chest_hand > self.safety_radius:
                 return "approach"
+            """
         return "failure"
 
 

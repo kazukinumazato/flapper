@@ -29,7 +29,7 @@ class NavigatorDual:
         r_min=0.7,
         r_max=1.5,
         chest2eye_h=0.2,
-        repulsion_gain=2.0
+        repulsion_gain=2.0,
     ):
 
         # パラメータ
@@ -40,7 +40,7 @@ class NavigatorDual:
         self.eye_h = 1.5  # とりあえず1.5で初期値
         self.theta_scale = theta_scale
         self.drone_between_dist_thresh = drone_between_dist_thresh
-        self.repulsion_gain=repulsion_gain
+        self.repulsion_gain = repulsion_gain
 
         # 状態管理
         self.phase = "takeoff_hover"
@@ -94,7 +94,7 @@ class NavigatorDual:
         self.takeoff_y = 0  # 待機場所のY（使わない）
         self.takeoff_z = 2.0  # 待機場所のZ（離陸直後の高度）
 
-        self.t=None
+        self.t = None
 
     # --- Callbacks ---
     def drone_cb(self, msg):
@@ -135,10 +135,11 @@ class NavigatorDual:
         if self.running:
             self.running = False  # フラグをFalseにしてループを終了させる
             if self.t and self.t.is_alive():
-                self.t.join(timeout=1.0)  # スレッドの終了を待つ（タイムアウト付きでブロックを避ける）
+                self.t.join(
+                    timeout=1.0
+                )  # スレッドの終了を待つ（タイムアウト付きでブロックを避ける）
             self.t = None  # クリーンアップ
             rospy.loginfo(f"Navigator {self.my_id} stopped")
-                
 
     def get_radius(self, z):
         return self.r_min + (self.r_max - self.r_min) / (
@@ -203,45 +204,47 @@ class NavigatorDual:
             #                                            ->ドッキング
             if self.phase == "takeoff_hover":
                 # 指定した定点(3次元)との距離を計算
-                # ユーザーの意図に基づき、現在位置のXY座標をキープし、Z=takeoff_zを目指す
                 dist_to_takeoff = np.linalg.norm(
                     self.drone_p
                     - np.array([self.drone_p[0], self.drone_p[1], self.takeoff_z])
                 )
                 rospy.loginfo(
-                    f"Distance to takeoff Z: {abs(self.drone_p[2] - self.takeoff_z):.2f} m"
+                    f"[nav{self.my_id}]Distance to takeoff Z: {abs(self.drone_p[2] - self.takeoff_z):.2f} m"
                 )
                 rospy.loginfo(
-                    f"goal position: ({self.drone_p[0]:.2f}, {self.drone_p[1]:.2f}, {self.takeoff_z})"
+                    f"[nav{self.my_id}]goal position: ({self.drone_p[0]:.2f}, {self.drone_p[1]:.2f}, {self.takeoff_z})"
                 )
                 rospy.loginfo(
-                    f"current position: ({self.drone_p[0]:.2f}, {self.drone_p[1]:.2f}, {self.drone_p[2]:.2f})"
+                    f"[nav{self.my_id}]current position: ({self.drone_p[0]:.2f}, {self.drone_p[1]:.2f}, {self.drone_p[2]:.2f})"
                 )
                 if (
                     abs(self.drone_p[2] - self.takeoff_z) < 0.2
                 ):  # Z軸の差が20cm以内なら次へ
                     self.phase = "preparing"
                     rospy.loginfo(
-                        "Reached to beginning height. Switching to preparing phase."
+                        f"[nav{self.my_id}]Reached to beginning height. Switching to preparing phase."
                     )
             if self.phase == "preparing":
                 if self.drone_p[2] - 3.0 < 0.3 and dist_c_d >= r_curr - 0.1:
                     self.phase = "leading"
-                    rospy.loginfo("Switching to leading phase.")
+                    rospy.loginfo(f"[nav{self.my_id}]Switching to leading phase.")
 
             if self.phase == "leading":
                 if dist_c_d < r_curr + 0.1:
                     self.phase = "circling"
-                    rospy.loginfo("Switching to circling phase.")
+                    rospy.loginfo(f"[nav{self.my_id}]Switching to circling phase.")
 
-            if self.phase in ["circling","docked"]:
+            if self.phase in ["circling", "docked"]:
                 if dist_c_d > r_curr + 0.3:
                     self.phase = "leading"
                     rospy.loginfo(
                         f"[nav{self.my_id}]Too far from personal space. Switching to leading phase."
                     )
 
+
             if self.phase in ["leading", "circling"]:
+                # 現状ではstate_machineで到着判定をしているのでこちらは必要ない（えっ）
+                # Docked判定をトピックに流してステートマシンで購読するのがいいかも
                 if dist_h_d < 0.10 and dist_to_hand_z < 0.35:
                     rospy.loginfo(f"[nav{self.my_id}]docking check")
                     now = rospy.get_time()
@@ -261,7 +264,7 @@ class NavigatorDual:
                         if hand_movement > self.dock_hand_move_thresh:
                             # 手が動きすぎた -> カウントリセット
                             rospy.loginfo(
-                                "Docking cancelled: hand moved %.3f m (> %.3f m)"
+                                f"[nav{self.my_id}]Docking cancelled: hand moved %.3f m (> %.3f m)"
                                 % (hand_movement, self.dock_hand_move_thresh)
                             )
                             self.dock_start_time = None
@@ -272,13 +275,13 @@ class NavigatorDual:
                             if now - self.dock_start_time >= self.dock_hold_time:
                                 self.phase = "docked"
                                 rospy.loginfo(
-                                    "Docked: held over hand for %.2f s"
+                                    f"[nav{self.my_id}]Docked: held over hand for %.2f s"
                                     % self.dock_hold_time
                                 )
                                 # 成功時はタイマーと保持位置をクリアしておく
                                 self.dock_start_time = None
                                 self.dock_hand_start_pos = None
-                            
+
                 else:
                     # 条件を満たさなくなったらタイマーと位置をリセット
                     self.dock_start_time = None
@@ -319,23 +322,22 @@ class NavigatorDual:
                     # 手の向きを計算（胸から手へのベクトル）
                     hand_direction = self.hand_p[:2] - self.chest_p[:2]
                     hand_angle = np.arctan2(hand_direction[1], hand_direction[0])
-                    
+
                     # ドローンの現在のヨー角を取得
                     # drone_ori = self.drone_raw_pose.orientation
                     # current_theta = R.from_quat([drone_ori.x, drone_ori.y, drone_ori.z, drone_ori.w]).as_euler("xyz")[2]
 
-                    drone_direction=self.drone_p[:2]-self.chest_p[:2]
-                    drone_angle=np.arctan2(drone_direction[1], drone_direction[0])
-                    
+                    drone_direction = self.drone_p[:2] - self.chest_p[:2]
+                    drone_angle = np.arctan2(drone_direction[1], drone_direction[0])
+
                     # 手の向きとドローンの向きの角度差を計算
                     diff = (hand_angle - drone_angle + np.pi) % (2 * np.pi) - np.pi
-                    
+
                     # 回転角度を角度差の1/10に設定（時計回りまたは反時計回りを自動選択）
                     theta_rot = diff * 0.1
-                    
 
                     # theta_rot = 0.1  # 回転角度（ラジアン）
-                    
+
                     # 回転行列の作成
                     rot_mat = np.array(
                         [
@@ -363,13 +365,11 @@ class NavigatorDual:
                     goal_z = self.hand_p[2] + 0.3
                 else:
                     rospy.logwarn(f"[nav{self.my_id}]Unknown phase: {self.phase}")
-            
 
             # 指令値の正規化
             move_norm = np.linalg.norm(v_move)
-            if move_norm > 0.4:
-                v_move = (v_move / move_norm) * 0.4
-
+            if move_norm > 0.8:
+                v_move = (v_move / move_norm) * 0.8
 
             # --- 衝突回避 ---
             dist_between = np.linalg.norm(self.drone_p[:2] - self.other_drone_p[:2])
@@ -387,13 +387,17 @@ class NavigatorDual:
                     (self.drone_between_dist_thresh - dist_between) / 1.0, 0, 1
                 )  # 近さに応じて反発を強く
                 v_move += (
-                    repulsion_vec * strength * repulsion_weight * repulsion_influence*self.repulsion_gain
+                    repulsion_vec
+                    * strength
+                    * repulsion_weight
+                    * repulsion_influence
+                    * self.repulsion_gain
                 )
 
             # 指令値の正規化(回避込み)
             move_norm = np.linalg.norm(v_move)
-            if move_norm > 0.5:
-                v_move = (v_move / move_norm) * 0.5
+            if move_norm > 0.8:
+                v_move = (v_move / move_norm) * 0.8
 
             # 送信
             goal_pos = Vector3(
