@@ -157,7 +157,7 @@ class Approach(State):
 
             if not hasattr(self, "phase1") or not hasattr(self, "phase2"):
                 rospy.logwarn("Docked data not yet available")
-            if self.phase < 0 and self.phase2 < 0:
+            if self.phase1 < 0 and self.phase2 < 0:
                 return "stay"
             if self.phase1 == 5 and self.phase2 == 5:
                 self.approach_stop_pub.publish(Empty())
