@@ -153,7 +153,7 @@ class Navigator3D:
 
         # 到達時間ポテンシャルの計算
         dist_to_sub = np.sqrt((abs_X - q_sub[0])**2 + (abs_Y - q_sub[1])**2 + (abs_Z - q_sub[2])**2)
-        arrival_time = dist_to_sub + self.arrival_time_cost_weight * cost # ゴールまでの距離+コストx適当な重み
+        arrival_time = dist_to_sub * cost
 
         # 勾配（進むべき方向）の抽出
         mid = self.res // 2
