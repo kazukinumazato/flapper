@@ -42,7 +42,6 @@ class Navigator3D:
         self.dock_hand_move_thresh = 0.3  # m (30 cm)
 
         # --- Subscribers ---
-        # ドローン、胸、手の位置姿勢(MoCapデータ)を取得
         self.drone_pose_sub = rospy.Subscriber(
             "mocap_node/mocap/flapper/pose", PoseStamped, self.drone_cb
         )
@@ -53,7 +52,6 @@ class Navigator3D:
             "mocap_node/mocap/hand/pose", PoseStamped, self.hand_cb
         )
 
-        # 制御の開始・停止指示を受け取る
         self.approach_start_sub = rospy.Subscriber(
             "approach_start", Empty, self.start_cb
         )
@@ -171,7 +169,7 @@ class Navigator3D:
 
             # --- フェーズ遷移ロジック ---
             if self.phase == "takeoff_hover":
-                # 指定した定点(3次元)との距離を計算
+                # 指定した定点との距離を計算
                 dist_to_takeoff = np.linalg.norm(
                     self.drone_p
                     - np.array([self.takeoff_x, self.takeoff_y, self.takeoff_z])
