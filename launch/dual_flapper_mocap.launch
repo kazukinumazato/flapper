@@ -1,0 +1,44 @@
+<launch>
+    <arg name="robot_id" default="1" />
+
+    <node pkg="mocap_optitrack"
+        type="mocap_node"
+        name="mocap_node"
+        respawn="false"
+        launch-prefix="">
+        <rosparam subst_value="true">
+      rigid_bodies:
+         '7':
+               pose: mocap/flapper1/pose
+               pose2d: mocap/flapper1/ground_pose
+               child_frame_id: baselink
+               parent_frame_id: world
+         '3':  
+               pose: mocap/hand1/pose
+               pose2d: mocap/hand1/ground_pose
+               child_frame_id: baselink
+               parent_frame_id: world
+         '6':
+               pose: mocap/flapper2/pose
+               pose2d: mocap/flapper2/ground_pose
+               child_frame_id: baselink
+               parent_frame_id: world
+         '5':  
+               pose: mocap/hand2/pose
+               pose2d: mocap/hand2/ground_pose
+               child_frame_id: baselink
+               parent_frame_id: world
+         '4':
+               pose: mocap/chest/pose
+               pose2d: mocap/chest/ground_pose
+               child_frame_id: baselink
+               parent_frame_id: world
+      optitrack_config:
+         enable_optitrack: true
+         multicast_address: 239.255.42.99
+         command_port: 1510
+         data_port: 1511
+        </rosparam>
+        <remap from="~mocap/pose" to="mocap/pose" />
+  </node>
+</launch>

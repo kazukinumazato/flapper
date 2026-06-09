@@ -111,7 +111,7 @@ class CfClient():
         self.cf.high_level_commander.stop()
         
     def go_to(self, x, y, z, yaw ,duration_s, relative=False):
-        self.cf.high_level_commander.go_to(x, y, z, yaw, duration_s, relative)
+        self.cf.high_level_commander.go_to(x, y, z, 0, duration_s, relative)
 
     def close(self):
         self.cf.close_link()
